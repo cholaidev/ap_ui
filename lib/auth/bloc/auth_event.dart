@@ -5,10 +5,10 @@ sealed class AuthEvent {
 
 /// 🔐 Login Event
 class LoginRequested extends AuthEvent {
-  final String email;
+  final String phone;
   final String password;
 
-  const LoginRequested({required this.email, required this.password});
+  const LoginRequested({required this.phone, required this.password});
 }
 
 /// 🧾 Register Event
@@ -17,12 +17,14 @@ class RegisterRequested extends AuthEvent {
   final String phone;
   final String email;
   final String password;
+  final String role;
 
   const RegisterRequested({
     required this.name,
     required this.email,
     required this.password,
     required this.phone,
+    required this.role,
   });
 }
 

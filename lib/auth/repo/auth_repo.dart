@@ -7,11 +7,11 @@ class AuthRepository {
   final String? baseUrl = dotenv.env['API_URL'];
 
   /// 🧩 User login
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String phone, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/login'),
       headers: {'Accept': 'application/json'},
-      body: {'email': email, 'password': password},
+      body: {'phone': phone, 'password': password},
     );
 
     final data = jsonDecode(response.body);
@@ -33,6 +33,7 @@ class AuthRepository {
     String email,
     String password,
     String phone,
+    String role,
   ) async {
     try {
       print('base url $baseUrl');
@@ -46,6 +47,7 @@ class AuthRepository {
           'password': password,
           'password_confirmation': password,
           'phone': phone,
+          'role': role,
         },
       );
 

@@ -18,7 +18,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     try {
-      final result = await authRepository.login(event.email, event.password);
+      final result = await authRepository.login(event.phone, event.password);
 
       print('✅ Login result: $result');
 
@@ -52,6 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           event.email,
           event.password,
           event.phone,
+          event.role,
         );
 
         print('✅ Register result: $result');

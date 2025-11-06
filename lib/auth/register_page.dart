@@ -1,10 +1,10 @@
+import 'package:ap_ui/auth/bloc/auth_bloc.dart';
 import 'package:ap_ui/auth/bloc/auth_event.dart';
 import 'package:ap_ui/auth/bloc/auth_state.dart';
 import 'package:ap_ui/dashboard/dashboard.dart';
+import 'package:ap_ui/layout/nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'package:ap_ui/auth/bloc/auth_bloc.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,23 +14,23 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  String _selectedRole = 'admin';
+
   void _register() {
+    if (!_formKey.currentState!.validate()) return;
+
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
-
-    if (name.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Name and password are required")),
-      );
-      return;
-    }
+    final role = _selectedRole;
 
     context.read<AuthBloc>().add(
       RegisterRequested(
@@ -38,6 +38,7 @@ class _RegisterPageState extends State<RegisterPage> {
         email: email,
         password: password,
         phone: phone,
+        role: role,
       ),
     );
   }
@@ -58,7 +59,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ).showSnackBar(SnackBar(content: Text(state.message)));
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const DashboardPage()),
+              MaterialPageRoute(builder: (_) => const MainNavigation()),
             );
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(
@@ -68,76 +69,124 @@ class _RegisterPageState extends State<RegisterPage> {
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Image.asset('assets/images/app_logo.png', height: 120),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: "Full Name",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: "Email (optional)",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: "Phone",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-              BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  if (state is AuthLoading) {
-                    return const CircularProgressIndicator();
-                  }
-                  return ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 100,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Image.asset('assets/images/app_logo.png', height: 120),
+                const SizedBox(height: 20),
+
+                // Name
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: "Full Name",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    onPressed: _register,
-                    child: const Text(
-                      "Register",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                  validator:
+                      (value) =>
+                          value == null || value.isEmpty
+                              ? "Name is required"
+                              : null,
+                ),
+                const SizedBox(height: 20),
+
+                // Email
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: "Email (optional)",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
-                },
-              ),
-            ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Phone
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: "Phone",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  validator:
+                      (value) =>
+                          value == null || value.isEmpty
+                              ? "Phone number is required"
+                              : null,
+                ),
+                const SizedBox(height: 20),
+
+                // Password
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  validator:
+                      (value) =>
+                          value == null || value.length < 6
+                              ? "Password must be at least 6 characters"
+                              : null,
+                ),
+                const SizedBox(height: 20),
+
+                // Role Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  decoration: InputDecoration(
+                    labelText: "Role",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'staff', child: Text("Staff")),
+                    DropdownMenuItem(value: 'admin', child: Text("Admin")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _selectedRole = value);
+                  },
+                ),
+                const SizedBox(height: 30),
+
+                // Register Button
+                BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    if (state is AuthLoading) {
+                      return const CircularProgressIndicator();
+                    }
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _register,
+                        child: const Text(
+                          "Register",
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

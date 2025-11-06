@@ -1,9 +1,10 @@
+import 'package:ap_ui/auth/bloc/auth_bloc.dart';
 import 'package:ap_ui/auth/bloc/auth_event.dart';
 import 'package:ap_ui/auth/bloc/auth_state.dart';
 import 'package:ap_ui/dashboard/dashboard.dart';
+import 'package:ap_ui/layout/nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ap_ui/auth/bloc/auth_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,23 +14,26 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   void _login() {
-    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (phone.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter email and password")),
+        const SnackBar(content: Text("Please enter phone number and password")),
       );
       return;
     }
 
     context.read<AuthBloc>().add(
-      LoginRequested(email: email, password: password),
+      LoginRequested(
+        phone: phone, // ✅ use phone instead of email
+        password: password,
+      ),
     );
   }
 
@@ -51,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
             ).showSnackBar(SnackBar(content: Text(state.message)));
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const DashboardPage()),
+              MaterialPageRoute(builder: (_) => const MainNavigation()),
             );
           }
 
@@ -77,27 +81,41 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 40),
+
+                // 🔢 Phone number field
                 TextField(
-                  controller: _emailController,
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  // inputFormatters: [
+                  //   FilteringTextInputFormatter.digitsOnly,
+                  // ],
                   decoration: InputDecoration(
-                    labelText: "Email",
+                    labelText: "Phone Number",
+                    counterText: "", // hides the counter below
+                    prefixIcon: const Icon(Icons.phone),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 20),
+
+                // 🔒 Password field
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: "Password",
+                    prefixIcon: const Icon(Icons.lock),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
                 const SizedBox(height: 30),
+
                 _isLoading
                     ? const CircularProgressIndicator()
                     : ElevatedButton(
@@ -118,6 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                 const SizedBox(height: 20),
+
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/register'),
                   child: const Text(
