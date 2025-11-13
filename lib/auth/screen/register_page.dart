@@ -109,6 +109,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
                   decoration: InputDecoration(
                     labelText: "Phone",
                     border: OutlineInputBorder(

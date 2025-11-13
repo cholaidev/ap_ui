@@ -1,4 +1,4 @@
-import 'package:ap_ui/customer/customer_list.dart';
+import 'package:ap_ui/customer/screen/customer_list_page.dart';
 import 'package:ap_ui/supply/supply.dart';
 import 'package:ap_ui/vendor/vendor_list.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +16,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _pages = const [
     DashboardPage(),
-    CustomerPage(),
+    CustomerListPage(),
     VendorPage(),
     SuppliesPage(),
   ];

@@ -49,10 +49,10 @@ class _LoginPageState extends State<LoginPage> {
             setState(() => _isLoading = false);
           }
 
-          if (state is LoginSuccess) {
+          if (state is Authenticated) {
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            ).showSnackBar(SnackBar(content: Text('logged in')));
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const MainNavigation()),

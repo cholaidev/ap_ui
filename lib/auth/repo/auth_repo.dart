@@ -68,4 +68,13 @@ class AuthRepository {
       throw Exception("Something went wrong. Please try again later.");
     }
   }
+
+  // Future<UserModel?> getSavedUser() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final userData = prefs.getString('user');
+  //   if (userData != null) {
+  //     return UserModel.fromJson(jsonDecode(userData));
+  //   }
+  //   return null;
+  // }
 }
