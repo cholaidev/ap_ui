@@ -17,6 +17,10 @@ class DashboardPage extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
+
+          // 🔥 More height to completely stop overflow
+          childAspectRatio: 0.80,
+
           children: const [
             _DashboardCard(
               title: "Total Customers",
@@ -90,20 +94,31 @@ class _DashboardCard extends StatelessWidget {
               radius: 28,
               child: Icon(icon, color: color, size: 28),
             ),
+
             const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color,
+
+            FittedBox(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
+
+            const SizedBox(height: 6),
+
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.black54),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: title.length > 15 ? 12 : 14,
+                color: Colors.black54,
+              ),
             ),
           ],
         ),

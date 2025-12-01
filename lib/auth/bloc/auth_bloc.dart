@@ -104,10 +104,12 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
   @override
   AuthState? fromJson(Map<String, dynamic> json) {
     try {
-      final user = json['user'];
+      final user = UserModel.fromJson(json['user']);
       final token = json['token'];
 
       if (user != null && token != null) {
+        final authManager = AuthManager();
+        authManager.setSession(Authenticated(user, token));
         return Authenticated(user, token);
       }
       return Unauthenticated();
