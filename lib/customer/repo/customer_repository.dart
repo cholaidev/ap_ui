@@ -17,20 +17,29 @@ class CustomerRepository {
 
   /// 🧾 Fetch all customers
   Future<List<dynamic>> fetchCustomers() async {
-    final token = _getToken();
+    try {
+      final token = _getToken();
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/customers'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      return body['data'] ?? [];
-    } else {
-      throw Exception(
-        'Failed to load customers — status: ${response.statusCode}',
+      final response = await http.get(
+        Uri.parse('$baseUrl/customers'),
+        headers: {'Authorization': 'Bearer $token'},
       );
+
+      print('📡 fetchCustomers → Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        print('📦 fetchCustomers → Body: $body');
+        return body['data'] ?? [];
+      } else {
+        throw Exception(
+          'Failed to load customers — status: ${response.statusCode}',
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ fetchCustomers ERROR: $e');
+      print('📌 STACK TRACE:\n$stackTrace');
+      throw Exception('fetchCustomers failed: $e');
     }
   }
 

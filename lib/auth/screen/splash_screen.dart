@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:ap_ui/auth/bloc/auth_state.dart';
+import 'package:ap_ui/layout/nav_bar.dart';
 import 'package:ap_ui/shared/helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (authBlocState is Authenticated) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const DashboardPage()),
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
         );
       } else {
         Navigator.pushReplacement(

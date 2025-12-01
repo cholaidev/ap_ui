@@ -5,7 +5,7 @@ class CustomerInitial extends CustomerState {}
 class CustomerLoading extends CustomerState {}
 
 class CustomerLoaded extends CustomerState {
-  final List<dynamic> customers;
+  final List customers;
   CustomerLoaded(this.customers);
 }
 

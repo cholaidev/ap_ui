@@ -11,8 +11,10 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       emit(CustomerLoading());
       try {
         final customers = await customerRepo.fetchCustomers();
+        print('fetch customers $customers');
         emit(CustomerLoaded(customers));
-      } catch (e) {
+      } catch (e, trace) {
+        print('get customer erro $e $trace');
         emit(CustomerError(e.toString()));
       }
     });
