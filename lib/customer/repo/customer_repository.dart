@@ -63,21 +63,35 @@ class CustomerRepository {
 
   /// ➕ Add new customer
   Future<void> addCustomer(Map<String, dynamic> data) async {
-    final token = _getToken();
+    try {
+      final token = _getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception("Auth token missing");
+      }
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/customers'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(data),
-    );
-
-    if (response.statusCode != 201) {
-      throw Exception(
-        'Failed to add customer — status: ${response.statusCode}',
+      final response = await http.post(
+        Uri.parse('$baseUrl/customers'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(data),
       );
+
+      print("📤 Add Customer Request: $data");
+      print("📥 Response Status: ${response.statusCode}");
+      print("📥 Response Body: ${response.body}");
+
+      if (response.statusCode != 201 && response.statusCode != 200) {
+        throw Exception(
+          'Failed to add customer — status: ${response.statusCode}',
+        );
+      }
+    } catch (e, stackTrace) {
+      print("❌ addCustomer error: $e");
+      print("🧵 StackTrace:");
+      print(stackTrace);
+      throw Exception("Unable to add customer: $e");
     }
   }
 

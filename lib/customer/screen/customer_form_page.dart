@@ -16,9 +16,15 @@ class CustomerFormPage extends StatefulWidget {
 
 class _CustomerFormPageState extends State<CustomerFormPage> {
   final _formKey = GlobalKey<FormState>();
+
+  // CONTROLLERS
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _houseNameController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _quantityController = TextEditingController();
+  final _phoneController = TextEditingController(); // ✅ ADDED
+
+  String? _milkType;
 
   @override
   void initState() {
@@ -26,17 +32,25 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
 
     if (widget.editCustomer != null) {
       _nameController.text = widget.editCustomer!['name'] ?? '';
-      _phoneController.text = widget.editCustomer!['phone'] ?? '';
-      _emailController.text = widget.editCustomer!['email'] ?? '';
+      _houseNameController.text = widget.editCustomer!['house_name'] ?? '';
+      _locationController.text = widget.editCustomer!['location'] ?? '';
+      _milkType = widget.editCustomer!['milk'];
+      _quantityController.text =
+          widget.editCustomer!['quantity']?.toString() ?? '';
+      _phoneController.text = widget.editCustomer!['phone'] ?? ''; // ✅ ADDED
     }
   }
 
+  /// SAVE BUTTON HANDLER
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final data = {
         'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(), // ✅ ADDED
+        'house_name': _houseNameController.text.trim(),
+        'location': _locationController.text.trim(),
+        'milk': _milkType,
+        'quantity': int.tryParse(_quantityController.text.trim()),
       };
 
       if (widget.editCustomer != null) {
@@ -49,7 +63,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
     }
   }
 
-  /// ❗ Show discard confirmation popup
+  /// DISCARD POPUP
   void _showDiscardPopup() {
     showDialog(
       context: context,
@@ -66,8 +80,8 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // close dialog
-                  Navigator.pop(context); // go back screen
+                  Navigator.pop(context);
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text("Discard"),
@@ -105,7 +119,6 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: SingleChildScrollView(
-            // 👈 Prevent overflow
             child: Form(
               key: _formKey,
               child: Column(
@@ -128,21 +141,29 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
 
                   const SizedBox(height: 16),
 
-                  /// PHONE
+                  /// PHONE  📞   (NEW FIELD)
                   const Text(
-                    "Phone",
+                    "Phone Number",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
                   TextFormField(
-                    maxLength: 10,
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    validator:
-                        (v) =>
-                            v == null || v.length != 10
-                                ? "Enter valid 10-digit phone"
-                                : null,
+                    maxLength: 10, // required for limiting input
+                    buildCounter:
+                        (
+                          _, {
+                          required int currentLength,
+                          required bool isFocused,
+                          required int? maxLength,
+                        }) => null,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return "Enter phone number";
+                      if (v.length != 10)
+                        return "Phone number must be 10 digits";
+                      return null;
+                    },
                     decoration: const InputDecoration(
                       hintText: "Enter phone number",
                       border: OutlineInputBorder(),
@@ -151,21 +172,78 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
 
                   const SizedBox(height: 16),
 
-                  /// EMAIL (OPTIONAL)
+                  /// HOUSE NAME
                   const Text(
-                    "Email (Optional)",
+                    "House Name",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
                   TextFormField(
-                    controller: _emailController,
+                    controller: _houseNameController,
                     decoration: const InputDecoration(
-                      hintText: "Enter email",
+                      hintText: "Enter house name",
                       border: OutlineInputBorder(),
                     ),
                   ),
 
-                  const SizedBox(height: 100), // avoid hiding behind FABs
+                  const SizedBox(height: 16),
+
+                  /// LOCATION
+                  const Text(
+                    "Location",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _locationController,
+                    decoration: const InputDecoration(
+                      hintText: "Enter location",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// MILK
+                  const Text(
+                    "Milk",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: _milkType,
+                    items:
+                        ["Cow", "Buffalo", "Goat"]
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
+                    onChanged: (v) => setState(() => _milkType = v),
+                    validator: (v) => v == null ? "Select milk type" : null,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// QUANTITY
+                  const Text(
+                    "Quantity (Liters)",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _quantityController,
+                    keyboardType: TextInputType.number,
+                    validator: (v) => v!.isEmpty ? "Enter quantity" : null,
+                    decoration: const InputDecoration(
+                      hintText: "Enter quantity",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -173,6 +251,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
         ),
       ),
 
+      /// SAVE + DISCARD FAB
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -180,17 +259,17 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
           FloatingActionButton.extended(
             heroTag: "discardBtn",
             backgroundColor: Colors.red,
+            onPressed: _showDiscardPopup,
             icon: const Icon(Icons.close, color: whiteColor),
             label: const Text("Discard", style: TextStyle(color: whiteColor)),
-            onPressed: _showDiscardPopup,
           ),
 
           FloatingActionButton.extended(
             heroTag: "saveBtn",
             backgroundColor: const Color(0xFF2E7D32),
+            onPressed: _submit,
             icon: const Icon(Icons.save, color: whiteColor),
             label: const Text("Save", style: TextStyle(color: whiteColor)),
-            onPressed: _submit,
           ),
         ],
       ),

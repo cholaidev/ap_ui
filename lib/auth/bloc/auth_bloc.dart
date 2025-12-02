@@ -80,7 +80,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
 
       // Store session globally
       final authManager = AuthManager();
-      authManager.setSession(Authenticated(result["user"], token));
+      authManager.setSession(Authenticated(user, token));
 
       // Emit Authenticated state
       emit(Authenticated(user, token));
