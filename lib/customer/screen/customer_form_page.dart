@@ -106,6 +106,12 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
       body: BlocListener<CustomerBloc, CustomerState>(
         listener: (context, state) {
           if (state is CustomerSuccess) {
+            context.read<CustomerBloc>().add(FetchCustomers());
+            if (widget.editCustomer != null) {
+              context.read<CustomerBloc>().add(
+                GetCustomerDetails(widget.editCustomer!['id']),
+              );
+            }
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));

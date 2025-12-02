@@ -48,5 +48,15 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
         emit(CustomerError(e.toString()));
       }
     });
+
+    on<DeleteCustomer>((event, emit) async {
+      emit(CustomerLoading());
+      try {
+        await customerRepo.deleteCustomer(event.id);
+        emit(DeleteSuccess("delete customer successfully"));
+      } catch (e) {
+        emit(CustomerError(e.toString()));
+      }
+    });
   }
 }

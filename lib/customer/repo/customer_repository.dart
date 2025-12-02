@@ -45,19 +45,28 @@ class CustomerRepository {
 
   /// 👤 Get details of one customer
   Future<Map<String, dynamic>> getCustomerDetails(int id) async {
-    final token = _getToken();
+    try {
+      final token = _getToken();
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/customers/$id'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception(
-        'Failed to load customer details (id: $id) — ${response.statusCode}',
+      final response = await http.get(
+        Uri.parse('$baseUrl/customers/$id'),
+        headers: {'Authorization': 'Bearer $token'},
       );
+
+      if (response.statusCode == 200) {
+        print('customerdetails${jsonDecode(response.body)}');
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+          'Failed to load customer details (id: $id) — Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      // Log error for debugging
+      print("❌ getCustomerDetails Error (id=$id): $e");
+
+      // Re-throw error so UI can handle it (show popup/snackbar)
+      throw Exception("Unable to fetch customer details. Error: $e");
     }
   }
 
@@ -106,6 +115,24 @@ class CustomerRepository {
         'Content-Type': 'application/json',
       },
       body: jsonEncode(data),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to update customer (id: $id) — status: ${response.statusCode}',
+      );
+    }
+  }
+
+  Future<void> deleteCustomer(int id) async {
+    final token = _getToken();
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/customers/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
     );
 
     if (response.statusCode != 200) {

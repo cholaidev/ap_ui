@@ -32,57 +32,157 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
       body: BlocBuilder<CustomerBloc, CustomerState>(
         builder: (context, state) {
-          print('check run time ${state.runtimeType}');
+          print('check runtime state ${state.runtimeType}');
           if (state is CustomerLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (state is CustomerLoaded) {
-            print('customer loder ${state.customers}');
-            if (state.customers.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.person_off, size: 80, color: Colors.grey),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "No customers found",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      "Please add a new customer",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              );
-            }
+            final customers = state.customers;
 
-            // 🔥 Normal List of customers
-            return ListView.builder(
-              itemCount: state.customers.length,
-              itemBuilder: (context, index) {
-                final customer = state.customers[index];
-                return ListTile(
-                  title: Text(customer['name']),
-                  subtitle: Text(customer['phone'] ?? ''),
-                  trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CustomerDetailPage(id: customer['id']),
-                      ),
-                    );
-                  },
-                );
-              },
+            // 🔢 Total stats
+            final totalCustomers = customers.length;
+            final totalLiters = 90;
+
+            return Column(
+              children: [
+                /// 🔥 METRICS CARD
+                Padding(
+                  padding: const EdgeInsets.all(0),
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32),
+                      borderRadius: BorderRadius.circular(0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            const Text(
+                              "Total Customers",
+                              style: TextStyle(color: whiteColor, fontSize: 14),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              "$totalCustomers",
+                              style: const TextStyle(
+                                color: whiteColor,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            const Text(
+                              "Total Liters",
+                              style: TextStyle(color: whiteColor, fontSize: 14),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              "$totalLiters L",
+                              style: const TextStyle(
+                                color: whiteColor,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                /// CUSTOMER LIST
+                Expanded(
+                  child:
+                      customers.isEmpty
+                          ? const Center(
+                            child: Text(
+                              "No customers found",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          )
+                          : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            itemCount: customers.length,
+                            itemBuilder: (context, index) {
+                              final c = customers[index];
+
+                              return Card(
+                                elevation: 1,
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                child: ListTile(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) =>
+                                                CustomerDetailPage(id: c['id']),
+                                      ),
+                                    );
+                                  },
+
+                                  title: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      /// NAME
+                                      Text(
+                                        c['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      /// MILK + LITERS
+                                      Text(
+                                        "${c['milk']} (${c['quantity']} L)",
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        /// PHONE
+                                        Text(
+                                          "📞 ${c['phone'] ?? ''}",
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+
+                                        /// ACTIVE/INACTIVE ICON
+                                        Icon(
+                                          c['is_active'] == 1
+                                              ? Icons.check_circle
+                                              : Icons.cancel,
+                                          color:
+                                              c['is_active'] == 1
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                ),
+              ],
             );
           }
 
@@ -96,12 +196,11 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2E7D32),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CustomerFormPage()),
-          );
-        },
+        onPressed:
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CustomerFormPage()),
+            ),
         child: const Icon(Icons.add, color: whiteColor),
       ),
     );

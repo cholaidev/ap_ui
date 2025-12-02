@@ -21,3 +21,8 @@ class UpdateCustomer extends CustomerEvent {
   final Map<String, dynamic> data;
   UpdateCustomer(this.id, this.data);
 }
+
+class DeleteCustomer extends CustomerEvent {
+  final int id;
+  DeleteCustomer(this.id);
+}
