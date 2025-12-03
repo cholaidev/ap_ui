@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:ap_ui/auth/screen/splash_screen.dart';
+import 'package:ap_ui/employee/bloc/employee_bloc.dart';
 import 'package:ap_ui/shared/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -91,6 +92,8 @@ class _MilkAppState extends State<MilkApp> with WidgetsBindingObserver {
 
           /// 👥 Customer BLoC (fetch/add/edit customers)
           BlocProvider(create: (context) => CustomerBloc()),
+
+          BlocProvider(create: (context) => EmployeeBloc()),
 
           /// 🧾 Vendor BLoC
           // BlocProvider(create: (context) => VendorBloc()),

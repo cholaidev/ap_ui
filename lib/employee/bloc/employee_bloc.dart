@@ -1,0 +1,68 @@
+import 'package:ap_ui/employee/repo/employee_repo.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'employee_event.dart';
+import 'employee_state.dart';
+
+class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
+  final employeeRepo = EmployeeRepository();
+
+  EmployeeBloc() : super(EmployeeInitial()) {
+    on<LoadEmployees>((event, emit) async {
+      emit(EmployeeLoading());
+      try {
+        final result = await employeeRepo.getEmployees();
+        emit(EmployeeLoaded(result));
+      } catch (e) {
+        emit(EmployeeError("Error loading employees: $e"));
+      }
+    });
+    on<GetEmployeeDetails>((event, emit) async {
+      emit(EmployeeLoading());
+      try {
+        final result = await employeeRepo.getEmployeeDetails(event.id);
+        emit(EmployeeDetailLoaded(result));
+      } catch (e) {
+        emit(EmployeeError("Error: $e"));
+      }
+    });
+
+    // ----------------------------------------------------
+    // CREATE EMPLOYEE
+    // ----------------------------------------------------
+    on<CreateEmployee>((event, emit) async {
+      emit(EmployeeLoading());
+      try {
+        await employeeRepo.createEmployee(event.employeeData);
+        emit(EmployeeSuccess("Employee Created Successfully"));
+      } catch (e) {
+        emit(EmployeeError("Error: $e"));
+      }
+    });
+
+    // ----------------------------------------------------
+    // UPDATE EMPLOYEE
+    // ----------------------------------------------------
+    on<UpdateEmployee>((event, emit) async {
+      emit(EmployeeLoading());
+      try {
+        await employeeRepo.updateEmployee(event.id, event.updatedData);
+        emit(EmployeeSuccess("Employee Updated"));
+      } catch (e) {
+        emit(EmployeeError("Error: $e"));
+      }
+    });
+
+    // ----------------------------------------------------
+    // DELETE EMPLOYEE
+    // ----------------------------------------------------
+    on<DeleteEmployee>((event, emit) async {
+      emit(EmployeeLoading());
+      try {
+        await employeeRepo.deleteEmployee(event.id);
+        emit(EmployeeSuccess("Employee Deleted"));
+      } catch (e) {
+        emit(EmployeeError("Error: $e"));
+      }
+    });
+  }
+}

@@ -1,8 +1,8 @@
 import 'package:ap_ui/customer/screen/customer_list_page.dart';
 import 'package:ap_ui/supply/supply.dart';
-import 'package:ap_ui/vendor/vendor_list.dart';
 import 'package:flutter/material.dart';
 import 'package:ap_ui/dashboard/dashboard.dart';
+import 'package:ap_ui/employee/screen/employee_list.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -17,7 +17,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _pages = const [
     DashboardPage(),
     CustomerListPage(),
-    VendorPage(),
+    EmployeeListPage(),
     SuppliesPage(),
   ];
 
@@ -34,7 +34,7 @@ class _MainNavigationState extends State<MainNavigation> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.people), label: "Customer"),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: "Vendor"),
+          BottomNavigationBarItem(icon: Icon(Icons.badge), label: "Employee"),
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2),
             label: "Supplies",

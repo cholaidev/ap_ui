@@ -42,7 +42,10 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
             // 🔢 Total stats
             final totalCustomers = customers.length;
-            final totalLiters = 90;
+            num totalLiters = customers.fold(
+              0,
+              (sum, e) => sum + (e["quantity"] ?? 0),
+            );
 
             return Column(
               children: [
