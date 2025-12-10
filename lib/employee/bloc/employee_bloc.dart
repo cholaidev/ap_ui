@@ -46,7 +46,7 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
       emit(EmployeeLoading());
       try {
         await employeeRepo.updateEmployee(event.id, event.updatedData);
-        emit(EmployeeSuccess("Employee Updated"));
+        emit(EmployeeUpdateSuccess("Employee Updated"));
       } catch (e) {
         emit(EmployeeError("Error: $e"));
       }
@@ -59,7 +59,7 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
       emit(EmployeeLoading());
       try {
         await employeeRepo.deleteEmployee(event.id);
-        emit(EmployeeSuccess("Employee Deleted"));
+        emit(EmployeeDeleteSuccess("Employee Deleted"));
       } catch (e) {
         emit(EmployeeError("Error: $e"));
       }

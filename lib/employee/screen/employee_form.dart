@@ -118,6 +118,13 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
 
             context.read<EmployeeBloc>().add(LoadEmployees());
             Navigator.pop(context);
+          } else if (state is EmployeeUpdateSuccess) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+
+            context.read<EmployeeBloc>().add(LoadEmployees());
+            Navigator.pop(context);
           } else if (state is EmployeeError) {
             ScaffoldMessenger.of(
               context,

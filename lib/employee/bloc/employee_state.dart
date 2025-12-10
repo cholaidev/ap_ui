@@ -21,6 +21,16 @@ class EmployeeSuccess extends EmployeeState {
   EmployeeSuccess(this.message);
 }
 
+class EmployeeUpdateSuccess extends EmployeeState {
+  final String message;
+  EmployeeUpdateSuccess(this.message);
+}
+
+class EmployeeDeleteSuccess extends EmployeeState {
+  final String message;
+  EmployeeDeleteSuccess(this.message);
+}
+
 class EmployeeError extends EmployeeState {
   final String message;
   EmployeeError(this.message);

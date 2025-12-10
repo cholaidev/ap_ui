@@ -40,10 +40,10 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
             final employees = state.employees;
 
             final totalEmployees = employees.length;
-            num totalSalary = employees.fold(
-              0,
-              (sum, e) => sum + (e["salary"] ?? 0),
-            );
+            num totalSalary = employees.fold(0, (sum, e) {
+              final salary = num.tryParse(e["salary"].toString()) ?? 0;
+              return sum + salary;
+            });
 
             return Column(
               children: [
