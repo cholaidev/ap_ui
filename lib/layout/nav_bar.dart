@@ -1,4 +1,5 @@
 import 'package:ap_ui/customer/screen/customer_list_page.dart';
+import 'package:ap_ui/supply/screen/supply_list_screen.dart';
 import 'package:ap_ui/supply/supply.dart';
 import 'package:flutter/material.dart';
 import 'package:ap_ui/dashboard/dashboard.dart';
@@ -18,7 +19,7 @@ class _MainNavigationState extends State<MainNavigation> {
     DashboardPage(),
     CustomerListPage(),
     EmployeeListPage(),
-    SuppliesPage(),
+    SupplyListPage(),
   ];
 
   @override
