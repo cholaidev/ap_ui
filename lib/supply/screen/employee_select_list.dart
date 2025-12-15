@@ -2,11 +2,12 @@ import 'package:ap_ui/employee/bloc/employee_bloc.dart';
 import 'package:ap_ui/employee/bloc/employee_event.dart';
 import 'package:ap_ui/employee/bloc/employee_state.dart';
 import 'package:ap_ui/shared/constant/colors.dart';
+import 'package:ap_ui/supply/cubit/supply_cubit_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class EmployeeSelectListPage extends StatefulWidget {
-  final Map<String, dynamic>? selectedEmployee;
+  final Map? selectedEmployee;
 
   const EmployeeSelectListPage({super.key, this.selectedEmployee});
 
@@ -15,16 +16,24 @@ class EmployeeSelectListPage extends StatefulWidget {
 }
 
 class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
-  Map<String, dynamic>? selected;
+  Map? selected;
+  SupplyCubitCubit supplyCubit = SupplyCubitCubit();
 
   @override
   void initState() {
     super.initState();
-    selected = widget.selectedEmployee;
+    print('edit employee ${widget.selectedEmployee}');
+    if (widget.selectedEmployee != null) {
+      selected = widget.selectedEmployee;
+    }
+
     context.read<EmployeeBloc>().add(LoadEmployees());
+    supplyCubit = BlocProvider.of<SupplyCubitCubit>(context);
   }
 
   void _onDone() {
+    print('selected employee $selected');
+    supplyCubit.setEmployee(selected!);
     Navigator.pop(context, selected);
   }
 
@@ -68,7 +77,11 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
                   child: ListTile(
                     onTap: () {
                       setState(() {
-                        selected = emp;
+                        if (selected?['id'] == emp['id']) {
+                          selected = null;
+                        } else {
+                          selected = emp;
+                        }
                       });
                     },
 
@@ -78,7 +91,11 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
                       groupValue: selected?['id'],
                       onChanged: (_) {
                         setState(() {
-                          selected = emp;
+                          if (selected?['id'] == emp['id']) {
+                            selected = null;
+                          } else {
+                            selected = emp;
+                          }
                         });
                       },
                     ),

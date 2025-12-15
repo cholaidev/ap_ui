@@ -3,6 +3,7 @@ import 'package:ap_ui/auth/screen/splash_screen.dart';
 import 'package:ap_ui/employee/bloc/employee_bloc.dart';
 import 'package:ap_ui/shared/theme.dart';
 import 'package:ap_ui/supply/bloc/supply_bloc.dart';
+import 'package:ap_ui/supply/cubit/supply_cubit_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -97,6 +98,8 @@ class _MilkAppState extends State<MilkApp> with WidgetsBindingObserver {
           BlocProvider(create: (context) => EmployeeBloc()),
 
           BlocProvider(create: (context) => SupplyBloc()),
+
+          BlocProvider(create: (context) => SupplyCubitCubit()),
 
           /// 🧾 Vendor BLoC
           // BlocProvider(create: (context) => VendorBloc()),

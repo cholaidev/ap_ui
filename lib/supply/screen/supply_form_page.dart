@@ -1,4 +1,6 @@
+import 'package:ap_ui/supply/cubit/supply_cubit_cubit.dart';
 import 'package:ap_ui/supply/screen/customer_select.dart';
+import 'package:ap_ui/supply/screen/employee_select_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/supply_bloc.dart';
@@ -21,13 +23,14 @@ class SupplyFormPage extends StatefulWidget {
 class _SupplyFormPageState extends State<SupplyFormPage> {
   Map<String, dynamic>? selectedEmployee;
   List<Map<String, dynamic>> selectedCustomers = [];
+  SupplyCubitCubit supplyCubit = SupplyCubitCubit();
 
   @override
   void initState() {
     super.initState();
     // context.read<EmployeeBloc>().add(LoadEmployees());
     // context.read<CustomerBloc>().add(FetchCustomers());
-
+    supplyCubit = BlocProvider.of<SupplyCubitCubit>(context);
     if (widget.editSupply != null) {
       selectedEmployee = widget.editSupply!['employee'];
       selectedCustomers = List<Map<String, dynamic>>.from(
@@ -106,38 +109,30 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
     );
   }
 
-  void _selectEmployee() async {
-    // final result = await Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (_) => const EmployeeSelectPage()),
-    // );
-
-    // if (result != null && result is Map<String, dynamic>) {
-    //   setState(() {
-    //     selectedEmployee = result;
-    //   });
-    // }
+  _selectEmployee(Map? emp) async {
+    print('select function $emp');
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EmployeeSelectListPage(selectedEmployee: emp),
+      ),
+    );
   }
 
   void _selectCustomers() async {
-    // final result = await Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (_) => CustomerSelectListPage(
-    //       selected: selectedCustomers,
-    //     ),
-    //   ),
-    // );
-
-    // if (result != null && result is List<Map<String, dynamic>>) {
-    //   setState(() {
-    //     selectedCustomers = result;
-    //   });
-    // }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomerSelectListPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    Map? selctedEmployee = context.watch<SupplyCubitCubit>().selectedEmployee;
+    if (selctedEmployee != null) {
+      print('selecte Employee $selctedEmployee');
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.editSupply != null ? "Edit Supply" : "Add Supply"),
@@ -153,15 +148,68 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _selectEmployee,
-              icon: const Icon(Icons.person),
-              label: Text(
-                selectedEmployee != null
-                    ? selectedEmployee!['name']
-                    : "Select Employee",
-              ),
+            BlocBuilder(
+              bloc: supplyCubit,
+              builder: (context, state) {
+                final emp = supplyCubit.selectedEmployee;
+                print('check employe into list $emp');
+                return emp == null
+                    ? ElevatedButton.icon(
+                      onPressed: () {
+                        _selectEmployee(selctedEmployee);
+                      },
+
+                      icon: const Icon(Icons.person),
+                      label: const Text("Select Employee"),
+                    )
+                    : Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.person,
+                              color: Colors.green,
+                              size: 32,
+                            ),
+                            const SizedBox(width: 12),
+
+                            /// NAME + PHONE
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    emp['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (emp['phone'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text("📞 ${emp['phone']}"),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () {
+                                _selectEmployee(emp);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+              },
             ),
+
             const SizedBox(height: 20),
 
             /// SELECT CUSTOMERS
@@ -244,12 +292,14 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           FloatingActionButton.extended(
+            heroTag: "discard_btn", // ✅ UNIQUE
             backgroundColor: Colors.red,
             icon: const Icon(Icons.close),
             label: const Text("Discard"),
             onPressed: _discard,
           ),
           FloatingActionButton.extended(
+            heroTag: "save_btn", // ✅ UNIQUE
             backgroundColor: Colors.green.shade700,
             icon: const Icon(Icons.save),
             label: const Text("Save"),
