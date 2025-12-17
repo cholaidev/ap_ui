@@ -6,21 +6,51 @@ part 'supply_cubit_state.dart';
 class SupplyCubitCubit extends Cubit<SupplyCubitState> {
   SupplyCubitCubit() : super(SupplyCubitInitial());
 
-  /// TOGGLE CUSTOMER
   Map? selectedEmployee;
+  List<Map<String, dynamic>> selectedCustomers = [];
+  double totalLiters = 0;
+  double totalAmountOfMilk = 0;
+  num priceofMilk = 50;
 
-  /// UPDATE LITERS
-  void updateQuantity(int id, double qty) {}
+  void calculateTotalAmountOfMilk(List customers) {
+    double liters = 0;
+    double amount = 0;
 
-  /// SET EMPLOYEE
-  void setEmployee(Map emp) {
-    print('select employee cubit $emp');
+    for (final c in customers) {
+      final qty = double.tryParse("${c['quantity']}") ?? 0;
+      final price = priceofMilk;
+
+      liters += qty;
+      amount += qty * price;
+    }
+
+    totalLiters = liters;
+    totalAmountOfMilk = amount;
+
+    emit(SupplyTotalUpdatedState());
+  }
+
+  void setEmployee(Map? emp) {
     selectedEmployee = emp;
     emit(SelectEmployeeSuccessState());
   }
 
-  /// PRELOAD (EDIT SUPPLY)
-  void setInitialCustomers(List list) {}
+  void setCustomers(List<Map<String, dynamic>> customers) {
+    selectedCustomers = customers;
+    calculateTotalAmountOfMilk(customers);
+    emit(SelectCustomerSuccessState());
+  }
 
-  void clear() {}
+  void removeCustomer(int id) {
+    selectedCustomers.removeWhere((c) => c['id'] == id);
+    emit(SelectCustomerSuccessState());
+  }
+
+  void updateCustomerQuantity(int id, double qty) {
+    final i = selectedCustomers.indexWhere((c) => c['id'] == id);
+    if (i != -1) {
+      selectedCustomers[i]['quantity'] = qty;
+      emit(SelectCustomerSuccessState());
+    }
+  }
 }

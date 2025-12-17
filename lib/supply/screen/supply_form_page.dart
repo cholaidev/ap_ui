@@ -1,15 +1,12 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:ap_ui/supply/cubit/supply_cubit_cubit.dart';
 import 'package:ap_ui/supply/screen/customer_select.dart';
 import 'package:ap_ui/supply/screen/employee_select_list.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../bloc/supply_bloc.dart';
-import '../bloc/supply_state.dart';
 import '../bloc/supply_event.dart';
-import '../../employee/bloc/employee_bloc.dart';
-import '../../employee/bloc/employee_state.dart';
-import '../../customer/bloc/customer_bloc.dart';
-import '../../customer/bloc/customer_state.dart';
 
 class SupplyFormPage extends StatefulWidget {
   final Map<String, dynamic>? editSupply;
@@ -21,58 +18,62 @@ class SupplyFormPage extends StatefulWidget {
 }
 
 class _SupplyFormPageState extends State<SupplyFormPage> {
-  Map<String, dynamic>? selectedEmployee;
-  List<Map<String, dynamic>> selectedCustomers = [];
-  SupplyCubitCubit supplyCubit = SupplyCubitCubit();
+  late SupplyCubitCubit supplyCubit;
 
   @override
   void initState() {
     super.initState();
-    // context.read<EmployeeBloc>().add(LoadEmployees());
-    // context.read<CustomerBloc>().add(FetchCustomers());
-    supplyCubit = BlocProvider.of<SupplyCubitCubit>(context);
+    supplyCubit = context.read<SupplyCubitCubit>();
+
+    /// PREFILL EDIT DATA
     if (widget.editSupply != null) {
-      selectedEmployee = widget.editSupply!['employee'];
-      selectedCustomers = List<Map<String, dynamic>>.from(
-        widget.editSupply!['items'] ?? [],
+      supplyCubit.setEmployee(widget.editSupply!['employee']);
+      supplyCubit.setCustomers(
+        List<Map<String, dynamic>>.from(widget.editSupply!['items'] ?? []),
       );
     }
   }
 
-  double get totalLiters => selectedCustomers.fold(
-    0,
-    (sum, c) => sum + (double.tryParse("${c['quantity']}") ?? 0),
-  );
+  void _selectEmployee() {
+    final cubit = context.read<SupplyCubitCubit>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => EmployeeSelectListPage(
+              selectedEmployee: cubit.selectedEmployee,
+            ),
+      ),
+    );
+  }
 
-  double get totalAmount => selectedCustomers.fold(0, (sum, c) {
-    final qty = double.tryParse("${c['quantity']}") ?? 0;
-    final price = double.tryParse("${c['price_per_liter'] ?? 50}") ?? 50;
-    return sum + (qty * price);
-  });
+  void _selectCustomers() {
+    final cubit = context.read<SupplyCubitCubit>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => CustomerSelectListPage(
+              initialSelected: cubit.selectedCustomers,
+            ),
+      ),
+    );
+  }
 
   void _save() {
-    if (selectedEmployee == null || selectedCustomers.isEmpty) {
+    if (supplyCubit.selectedEmployee == null ||
+        supplyCubit.selectedCustomers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Select employee & customers")),
       );
       return;
     }
-
+    final cubit = context.read<SupplyCubitCubit>();
     final payload = {
-      "employee_id": selectedEmployee!['id'],
-      "total_quantity": totalLiters,
-      "total_amount": totalAmount,
-      "items":
-          selectedCustomers
-              .map(
-                (c) => {
-                  "customer_id": c['id'],
-                  "milk": c['milk'],
-                  "quantity": c['quantity'],
-                  "price_per_liter": c['price_per_liter'] ?? 50,
-                },
-              )
-              .toList(),
+      "employee": cubit.selectedEmployee,
+      "total_quantity": cubit.totalLiters,
+      "total_amount": cubit.totalAmountOfMilk,
+      "items": cubit.selectedCustomers,
     };
 
     if (widget.editSupply != null) {
@@ -85,54 +86,11 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
   }
 
   void _discard() {
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Discard Changes?"),
-            content: const Text("Are you sure you want to discard?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: const Text("Discard"),
-              ),
-            ],
-          ),
-    );
-  }
-
-  _selectEmployee(Map? emp) async {
-    print('select function $emp');
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EmployeeSelectListPage(selectedEmployee: emp),
-      ),
-    );
-  }
-
-  void _selectCustomers() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const CustomerSelectListPage()),
-    );
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    Map? selctedEmployee = context.watch<SupplyCubitCubit>().selectedEmployee;
-    if (selctedEmployee != null) {
-      print('selecte Employee $selctedEmployee');
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.editSupply != null ? "Edit Supply" : "Add Supply"),
@@ -142,144 +100,207 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            /// SELECT EMPLOYEE
+            /// ================= EMPLOYEE =================
             const Text(
               "Employee",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            BlocBuilder(
-              bloc: supplyCubit,
+
+            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
               builder: (context, state) {
                 final emp = supplyCubit.selectedEmployee;
-                print('check employe into list $emp');
-                return emp == null
-                    ? ElevatedButton.icon(
-                      onPressed: () {
-                        _selectEmployee(selctedEmployee);
-                      },
 
-                      icon: const Icon(Icons.person),
-                      label: const Text("Select Employee"),
-                    )
-                    : Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.person,
-                              color: Colors.green,
-                              size: 32,
-                            ),
-                            const SizedBox(width: 12),
-
-                            /// NAME + PHONE
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    emp['name'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  if (emp['phone'] != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text("📞 ${emp['phone']}"),
-                                    ),
-                                ],
-                              ),
-                            ),
-
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                _selectEmployee(emp);
-                              },
-                            ),
-                          ],
-                        ),
+                if (emp == null) {
+                  return Column(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _selectEmployee,
+                        icon: const Icon(Icons.person),
+                        label: const Text("Select Employee"),
                       ),
-                    );
+                    ],
+                  );
+                }
+
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.person,
+                      color: Colors.green,
+                      size: 32,
+                    ),
+                    title: Text(emp['name']),
+                    subtitle: Text("📞 ${emp['phone']}"),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: _selectEmployee,
+                    ),
+                  ),
+                );
               },
             ),
 
             const SizedBox(height: 20),
 
-            /// SELECT CUSTOMERS
-            const Text(
-              "Customers",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _selectCustomers,
-              icon: const Icon(Icons.group),
-              label: const Text("Select Customers"),
-            ),
+            /// ================= CUSTOMERS =================
+            ///
+            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+              builder: (context, state) {
+                final customers = supplyCubit.selectedCustomers;
 
-            const SizedBox(height: 16),
-
-            /// SELECTED CUSTOMER LIST
-            ...selectedCustomers.map((c) {
-              return Card(
-                child: ListTile(
-                  title: Text(c['name']),
-                  subtitle: Row(
+                if (customers.isEmpty) {
+                  return Column(
                     children: [
-                      Text("Milk: ${c['milk']}"),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        width: 70,
-                        child: TextFormField(
-                          initialValue: "${c['quantity']}",
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(hintText: "Liters"),
-                          onChanged: (v) {
-                            c['quantity'] = double.tryParse(v) ?? c['quantity'];
-                            setState(() {});
-                          },
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Customers",
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
+
+                      const SizedBox(height: 8),
+
+                      ElevatedButton.icon(
+                        onPressed: _selectCustomers,
+                        icon: const Icon(Icons.group),
+                        label: const Text("Select Customers"),
+                      ),
                     ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed:
-                        () => setState(() => selectedCustomers.remove(c)),
-                  ),
-                ),
-              );
-            }),
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Customers",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _selectCustomers,
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text("Edit"),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 280, // customer list scroll area
+                      child: ListView.builder(
+                        primary: false, // ⭐ IMPORTANT
+                        physics: const ClampingScrollPhysics(), // ⭐ IMPORTANT
+                        itemCount: customers.length,
+                        itemBuilder: (_, i) {
+                          final c = customers[i];
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.person_outline,
+                                        color: Colors.green,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              c['name'],
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text("📞 ${c['phone']}"),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () {
+                                          supplyCubit.removeCustomer(c['id']);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text("Milk: ${c['milk']}"),
+                                      ),
+                                      SizedBox(
+                                        width: 90,
+                                        child: TextFormField(
+                                          initialValue: "${c['quantity']}",
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(
+                                            labelText: "Liters",
+                                          ),
+                                          onChanged: (v) {
+                                            supplyCubit.updateCustomerQuantity(
+                                              c['id'],
+                                              double.tryParse(v) ?? 0,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
 
             const SizedBox(height: 20),
 
-            /// TOTALS
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Total: ${totalLiters.toStringAsFixed(2)} L",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+            /// ================= TOTAL =================
+            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+              builder: (context, state) {
+                final cubit = context.read<SupplyCubitCubit>();
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Text(
-                    "₹ ${totalAmount.toStringAsFixed(2)}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Total: ${cubit.totalLiters.toStringAsFixed(2)} L",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "₹ ${cubit.totalAmountOfMilk.toStringAsFixed(2)}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             const SizedBox(height: 100),
@@ -292,15 +313,15 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           FloatingActionButton.extended(
-            heroTag: "discard_btn", // ✅ UNIQUE
+            heroTag: "discard",
             backgroundColor: Colors.red,
             icon: const Icon(Icons.close),
             label: const Text("Discard"),
             onPressed: _discard,
           ),
           FloatingActionButton.extended(
-            heroTag: "save_btn", // ✅ UNIQUE
-            backgroundColor: Colors.green.shade700,
+            heroTag: "save",
+            backgroundColor: Colors.green,
             icon: const Icon(Icons.save),
             label: const Text("Save"),
             onPressed: _save,

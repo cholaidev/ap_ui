@@ -1,34 +1,40 @@
 import 'package:ap_ui/shared/constant/colors.dart';
+import 'package:ap_ui/supply/cubit/supply_cubit_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:ap_ui/customer/bloc/customer_bloc.dart';
 import 'package:ap_ui/customer/bloc/customer_event.dart';
 import 'package:ap_ui/customer/bloc/customer_state.dart';
-import 'package:ap_ui/supply/cubit/supply_cubit_cubit.dart';
 
 class CustomerSelectListPage extends StatefulWidget {
-  const CustomerSelectListPage({super.key});
+  final List<Map<String, dynamic>>? initialSelected;
+
+  const CustomerSelectListPage({super.key, this.initialSelected});
 
   @override
   State<CustomerSelectListPage> createState() => _CustomerSelectListPageState();
 }
 
 class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
-  /// ✅ LOCAL SELECTED LIST
   final List<Map<String, dynamic>> selectedCustomers = [];
+  late SupplyCubitCubit supplyCubit;
 
   @override
   void initState() {
     super.initState();
+
+    if (widget.initialSelected != null) {
+      selectedCustomers.addAll(widget.initialSelected!);
+    }
+
     context.read<CustomerBloc>().add(FetchCustomers());
+    supplyCubit = context.read<SupplyCubitCubit>();
   }
 
-  bool isSelected(int id) {
-    return selectedCustomers.any((e) => e['id'] == id);
-  }
+  bool isSelected(int id) => selectedCustomers.any((e) => e['id'] == id);
 
-  Map<String, dynamic>? getSelectedCustomer(int id) {
+  Map<String, dynamic>? selectedCustomer(int id) {
     try {
       return selectedCustomers.firstWhere((e) => e['id'] == id);
     } catch (_) {
@@ -38,10 +44,12 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
 
   void toggleCustomer(Map<String, dynamic> customer) {
     setState(() {
-      final exists = selectedCustomers.any((e) => e['id'] == customer['id']);
+      final index = selectedCustomers.indexWhere(
+        (e) => e['id'] == customer['id'],
+      );
 
-      if (exists) {
-        selectedCustomers.removeWhere((e) => e['id'] == customer['id']);
+      if (index != -1) {
+        selectedCustomers.removeAt(index);
       } else {
         selectedCustomers.add({
           ...customer,
@@ -52,12 +60,17 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
   }
 
   void updateQuantity(int id, double qty) {
-    setState(() {
-      final index = selectedCustomers.indexWhere((e) => e['id'] == id);
-      if (index != -1) {
+    final index = selectedCustomers.indexWhere((e) => e['id'] == id);
+    if (index != -1) {
+      setState(() {
         selectedCustomers[index]['quantity'] = qty;
-      }
-    });
+      });
+    }
+  }
+
+  void _onDone() {
+    supplyCubit.setCustomers(selectedCustomers);
+    Navigator.pop(context, selectedCustomers);
   }
 
   @override
@@ -70,6 +83,15 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
           style: TextStyle(color: whiteColor),
         ),
         backgroundColor: const Color(0xFF2E7D32),
+        actions: [
+          TextButton(
+            onPressed: selectedCustomers.isEmpty ? null : _onDone,
+            child: const Text(
+              "DONE",
+              style: TextStyle(color: whiteColor, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
 
       body: BlocBuilder<CustomerBloc, CustomerState>(
@@ -85,78 +107,81 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
               itemBuilder: (_, index) {
                 final c = state.customers[index];
                 final selected = isSelected(c['id']);
-                final selectedCustomer = getSelectedCustomer(c['id']);
+                final sc = selectedCustomer(c['id']);
 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: selected,
-                              onChanged: (_) => toggleCustomer(c),
-                            ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    c['name'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text("📞 ${c['phone'] ?? '-'}"),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              c['is_active'] == 1
-                                  ? Icons.check_circle
-                                  : Icons.cancel,
-                              color:
-                                  c['is_active'] == 1
-                                      ? Colors.green
-                                      : Colors.red,
-                            ),
-                          ],
+                  child: Column(
+                    children: [
+                      ListTile(
+                        onTap: () => toggleCustomer(c),
+
+                        /// MULTI SELECT
+                        leading: Checkbox(
+                          value: selected,
+                          onChanged: (_) => toggleCustomer(c),
                         ),
 
-                        if (selected)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 48, top: 8),
-                            child: Row(
-                              children: [
-                                const Text("Liters"),
-                                const SizedBox(width: 12),
-                                SizedBox(
-                                  width: 100,
-                                  child: TextFormField(
-                                    initialValue:
-                                        "${selectedCustomer?['quantity'] ?? 0}",
-                                    keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      isDense: true,
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    onChanged: (v) {
-                                      updateQuantity(
-                                        c['id'],
-                                        double.tryParse(v) ?? 0,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
+                        title: Text(
+                          c['name'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                      ],
-                    ),
+                        ),
+
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("📞 ${c['phone'] ?? '-'}"),
+                              Icon(
+                                c['is_active'] == 1
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                color:
+                                    c['is_active'] == 1
+                                        ? Colors.green
+                                        : Colors.red,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      /// QUANTITY (ONLY IF SELECTED)
+                      if (selected)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(56, 0, 16, 12),
+                          child: Row(
+                            children: [
+                              const Text(
+                                "Liters",
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 100,
+                                child: TextFormField(
+                                  initialValue: "${sc?['quantity'] ?? 0}",
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  onChanged: (v) {
+                                    updateQuantity(
+                                      c['id'],
+                                      double.tryParse(v) ?? 0,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 );
               },

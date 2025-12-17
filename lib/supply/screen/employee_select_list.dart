@@ -33,7 +33,7 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
 
   void _onDone() {
     print('selected employee $selected');
-    supplyCubit.setEmployee(selected!);
+    supplyCubit.setEmployee(selected);
     Navigator.pop(context, selected);
   }
 

@@ -5,3 +5,7 @@ sealed class SupplyCubitState {}
 class SupplyCubitInitial extends SupplyCubitState {}
 
 class SelectEmployeeSuccessState extends SupplyCubitState {}
+
+class SelectCustomerSuccessState extends SupplyCubitState {}
+
+class SupplyTotalUpdatedState extends SupplyCubitState {}
