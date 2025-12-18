@@ -7,6 +7,7 @@ import 'package:ap_ui/supply/screen/employee_select_list.dart';
 
 import '../bloc/supply_bloc.dart';
 import '../bloc/supply_event.dart';
+import '../bloc/supply_state.dart';
 
 class SupplyFormPage extends StatefulWidget {
   final Map<String, dynamic>? editSupply;
@@ -35,26 +36,24 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
   }
 
   void _selectEmployee() {
-    final cubit = context.read<SupplyCubitCubit>();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (_) => EmployeeSelectListPage(
-              selectedEmployee: cubit.selectedEmployee,
+              selectedEmployee: supplyCubit.selectedEmployee,
             ),
       ),
     );
   }
 
   void _selectCustomers() {
-    final cubit = context.read<SupplyCubitCubit>();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (_) => CustomerSelectListPage(
-              initialSelected: cubit.selectedCustomers,
+              initialSelected: supplyCubit.selectedCustomers,
             ),
       ),
     );
@@ -68,12 +67,20 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       );
       return;
     }
-    final cubit = context.read<SupplyCubitCubit>();
+
     final payload = {
-      "employee": cubit.selectedEmployee,
-      "total_quantity": cubit.totalLiters,
-      "total_amount": cubit.totalAmountOfMilk,
-      "items": cubit.selectedCustomers,
+      "employee": supplyCubit.selectedEmployee,
+      "total_quantity": supplyCubit.totalLiters,
+      "total_amount": supplyCubit.totalAmountOfMilk,
+      "items":
+          supplyCubit.selectedCustomers.map((c) {
+            return {
+              "customer_id": c['id'],
+              "milk": c['milk'],
+              "quantity": c['quantity'],
+              "price_per_liter": c['price_per_liter'] ?? 50,
+            };
+          }).toList(),
     };
 
     if (widget.editSupply != null) {
@@ -96,216 +103,27 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
         title: Text(widget.editSupply != null ? "Edit Supply" : "Add Supply"),
         backgroundColor: Colors.green.shade700,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            /// ================= EMPLOYEE =================
-            const Text(
-              "Employee",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
 
-            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
-              builder: (context, state) {
-                final emp = supplyCubit.selectedEmployee;
+      /// ✅ BLOC LISTENER (SAME AS CUSTOMER FORM)
+      body: BlocListener<SupplyBloc, SupplyState>(
+        listener: (context, state) {
+          if (state is SupplySuccess) {
+            context.read<SupplyBloc>().add(LoadSupplies());
 
-                if (emp == null) {
-                  return Column(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _selectEmployee,
-                        icon: const Icon(Icons.person),
-                        label: const Text("Select Employee"),
-                      ),
-                    ],
-                  );
-                }
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
 
-                return Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.person,
-                      color: Colors.green,
-                      size: 32,
-                    ),
-                    title: Text(emp['name']),
-                    subtitle: Text("📞 ${emp['phone']}"),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: _selectEmployee,
-                    ),
-                  ),
-                );
-              },
-            ),
+            Navigator.pop(context);
+          }
 
-            const SizedBox(height: 20),
-
-            /// ================= CUSTOMERS =================
-            ///
-            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
-              builder: (context, state) {
-                final customers = supplyCubit.selectedCustomers;
-
-                if (customers.isEmpty) {
-                  return Column(
-                    children: [
-                      Container(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "Customers",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      ElevatedButton.icon(
-                        onPressed: _selectCustomers,
-                        icon: const Icon(Icons.group),
-                        label: const Text("Select Customers"),
-                      ),
-                    ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Customers",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _selectCustomers,
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text("Edit"),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 280, // customer list scroll area
-                      child: ListView.builder(
-                        primary: false, // ⭐ IMPORTANT
-                        physics: const ClampingScrollPhysics(), // ⭐ IMPORTANT
-                        itemCount: customers.length,
-                        itemBuilder: (_, i) {
-                          final c = customers[i];
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.person_outline,
-                                        color: Colors.green,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              c['name'],
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Text("📞 ${c['phone']}"),
-                                          ],
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.close,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () {
-                                          supplyCubit.removeCustomer(c['id']);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text("Milk: ${c['milk']}"),
-                                      ),
-                                      SizedBox(
-                                        width: 90,
-                                        child: TextFormField(
-                                          initialValue: "${c['quantity']}",
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            labelText: "Liters",
-                                          ),
-                                          onChanged: (v) {
-                                            supplyCubit.updateCustomerQuantity(
-                                              c['id'],
-                                              double.tryParse(v) ?? 0,
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            /// ================= TOTAL =================
-            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
-              builder: (context, state) {
-                final cubit = context.read<SupplyCubitCubit>();
-
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Total: ${cubit.totalLiters.toStringAsFixed(2)} L",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        "₹ ${cubit.totalAmountOfMilk.toStringAsFixed(2)}",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 100),
-          ],
-        ),
+          if (state is SupplyError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.error)));
+          }
+        },
+        child: _buildForm(),
       ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -326,6 +144,206 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
             label: const Text("Save"),
             onPressed: _save,
           ),
+        ],
+      ),
+    );
+  }
+
+  /// ================= FORM UI =================
+  Widget _buildForm() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: ListView(
+        children: [
+          /// ================= EMPLOYEE =================
+          const Text("Employee", style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+
+          BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+            builder: (context, state) {
+              final emp = supplyCubit.selectedEmployee;
+
+              if (emp == null) {
+                return ElevatedButton.icon(
+                  onPressed: _selectEmployee,
+                  icon: const Icon(Icons.person),
+                  label: const Text("Select Employee"),
+                );
+              }
+
+              return Card(
+                child: ListTile(
+                  leading: const Icon(Icons.person, color: Colors.green),
+                  title: Text(emp['name']),
+                  subtitle: Text("📞 ${emp['phone']}"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _selectEmployee,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 20),
+
+          /// ================= CUSTOMERS =================
+          BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+            builder: (context, state) {
+              final customers = supplyCubit.selectedCustomers;
+
+              if (customers.isEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Customers",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _selectCustomers,
+                            icon: const Icon(Icons.group),
+                            label: const Text("Select Customers"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Customers",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _selectCustomers,
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text("Edit"),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(
+                    height: 280,
+                    child: ListView.builder(
+                      itemCount: customers.length,
+                      itemBuilder: (_, i) {
+                        final c = customers[i];
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.person_outline,
+                                      color: Colors.green,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            c['name'],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text("📞 ${c['phone']}"),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () {
+                                        supplyCubit.removeCustomer(c['id']);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(child: Text("Milk: ${c['milk']}")),
+                                    SizedBox(
+                                      width: 90,
+                                      child: TextFormField(
+                                        initialValue: "${c['quantity']}",
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                          labelText: "Liters",
+                                        ),
+                                        onChanged: (v) {
+                                          supplyCubit.updateCustomerQuantity(
+                                            c['id'],
+                                            double.tryParse(v) ?? 0,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 20),
+
+          /// ================= TOTAL =================
+          BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+            builder: (context, state) {
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Total: ${supplyCubit.totalLiters.toStringAsFixed(2)} L",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "₹ ${supplyCubit.totalAmountOfMilk.toStringAsFixed(2)}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 100),
         ],
       ),
     );

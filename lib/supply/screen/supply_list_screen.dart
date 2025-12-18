@@ -37,7 +37,7 @@ class _SupplyListPageState extends State<SupplyListPage> {
 
           if (state is SupplyLoaded) {
             final supplies = state.supplies;
-
+            print('fetch supplies $supplies');
             if (supplies.isEmpty) {
               return const Center(child: Text("No supplies found"));
             }

@@ -1,70 +1,76 @@
+import 'package:ap_ui/supply/repo/supply_repo.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'supply_event.dart';
 import 'supply_state.dart';
 
 class SupplyBloc extends Bloc<SupplyEvent, SupplyState> {
+  final supplyRepo = SupplyRepository();
+
   SupplyBloc() : super(SupplyInitial()) {
+    /// ================= LOAD ALL SUPPLIES =================
     on<LoadSupplies>((event, emit) async {
-      emit(SupplyLoading());
-      await Future.delayed(const Duration(milliseconds: 500));
+      try {
+        emit(SupplyLoading());
 
-      emit(
-        SupplyLoaded([
-          {
-            "id": 1,
-            "employee": {"id": 1, "name": "Manoj"},
-            "total_quantity": 45,
-            "total_amount": 2250,
-            "is_supplied": true,
-          },
-        ]),
-      );
+        final supplies = await supplyRepo.fetchSupplies();
+
+        emit(SupplyLoaded(supplies));
+      } catch (e) {
+        emit(SupplyError(e.toString()));
+      }
     });
 
+    /// ================= GET SUPPLY DETAILS =================
     on<GetSupplyDetails>((event, emit) async {
-      emit(SupplyLoading());
-      await Future.delayed(const Duration(milliseconds: 500));
+      try {
+        emit(SupplyLoading());
 
-      emit(
-        SupplyDetailLoaded({
-          "id": event.id,
-          "employee": {"name": "Manoj"},
-          "total_quantity": 45,
-          "total_amount": 2250,
-          "items": [
-            {
-              "customer": {"name": "Ravi"},
-              "milk": "Cow",
-              "quantity": 20,
-              "amount": 1000,
-            },
-            {
-              "customer": {"name": "Suresh"},
-              "milk": "Buffalo",
-              "quantity": 25,
-              "amount": 1250,
-            },
-          ],
-        }),
-      );
+        final supply = await supplyRepo.getSupplyDetails(event.id);
+
+        emit(SupplyDetailLoaded(supply));
+      } catch (e) {
+        emit(SupplyError(e.toString()));
+      }
     });
 
+    /// ================= CREATE SUPPLY =================
     on<CreateSupply>((event, emit) async {
-      emit(SupplyLoading());
-      await Future.delayed(const Duration(milliseconds: 500));
-      emit(SupplySuccess("Supply Created"));
+      try {
+        emit(SupplyLoading());
+
+        await supplyRepo.createSupply(event.data);
+
+        emit(SupplySuccess("Supply created successfully"));
+      } catch (e) {
+        emit(SupplyError(e.toString()));
+      }
     });
 
+    /// ================= UPDATE SUPPLY =================
     on<UpdateSupply>((event, emit) async {
-      emit(SupplyLoading());
-      await Future.delayed(const Duration(milliseconds: 500));
-      emit(SupplySuccess("Supply Updated"));
+      try {
+        emit(SupplyLoading());
+
+        await supplyRepo.updateSupply(event.id, event.data);
+
+        emit(SupplyUpdateSuccess("Supply updated successfully"));
+      } catch (e) {
+        emit(SupplyError(e.toString()));
+      }
     });
 
+    /// ================= DELETE SUPPLY =================
     on<DeleteSupply>((event, emit) async {
-      emit(SupplyLoading());
-      await Future.delayed(const Duration(milliseconds: 500));
-      emit(SupplySuccess("Supply Deleted"));
+      try {
+        emit(SupplyLoading());
+
+        await supplyRepo.deleteSupply(event.id);
+
+        emit(SupplyDeleteSuccess("Supply deleted successfully"));
+      } catch (e) {
+        emit(SupplyError(e.toString()));
+      }
     });
   }
 }

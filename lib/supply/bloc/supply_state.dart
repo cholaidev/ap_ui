@@ -19,6 +19,21 @@ class SupplySuccess extends SupplyState {
   SupplySuccess(this.message);
 }
 
+class SupplyCreateSuccess extends SupplyState {
+  final String message;
+  SupplyCreateSuccess(this.message);
+}
+
+class SupplyUpdateSuccess extends SupplyState {
+  final String message;
+  SupplyUpdateSuccess(this.message);
+}
+
+class SupplyDeleteSuccess extends SupplyState {
+  final String message;
+  SupplyDeleteSuccess(this.message);
+}
+
 class SupplyError extends SupplyState {
   final String error;
   SupplyError(this.error);
