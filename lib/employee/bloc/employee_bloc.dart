@@ -6,11 +6,17 @@ import 'employee_state.dart';
 class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
   final employeeRepo = EmployeeRepository();
 
+  num totalActiveEmp = 0;
+  num totalInActiveEmp = 0;
+
   EmployeeBloc() : super(EmployeeInitial()) {
     on<LoadEmployees>((event, emit) async {
       emit(EmployeeLoading());
       try {
         final result = await employeeRepo.getEmployees();
+
+        totalActiveEmp = result.where((c) => c['is_active'] == 1).length;
+        totalInActiveEmp = result.where((c) => c['is_active'] == 0).length;
         emit(EmployeeLoaded(result));
       } catch (e) {
         emit(EmployeeError("Error loading employees: $e"));

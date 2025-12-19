@@ -11,3 +11,5 @@ class SelectCustomerSuccessState extends SupplyCubitState {}
 class SupplyTotalUpdatedState extends SupplyCubitState {}
 
 class SupplyDateUpdatedState extends SupplyCubitState {}
+
+class PriceUpdateSuccessState extends SupplyCubitState {}

@@ -7,12 +7,21 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
   // final String token;
   final customerRepo = CustomerRepository();
 
+  num totalActiveCustomers = 0;
+  num totalInActiveCustomers = 0;
+
   List customerHistory = [];
   CustomerBloc() : super(CustomerInitial()) {
     on<FetchCustomers>((event, emit) async {
       emit(CustomerLoading());
       try {
         final customers = await customerRepo.fetchCustomers();
+        print('over all customers $customers');
+        totalActiveCustomers =
+            customers.where((c) => c['is_active'] == 1).length;
+        print('total active customers $totalActiveCustomers');
+        totalInActiveCustomers =
+            customers.where((c) => c['is_active'] == 0).length;
         print('fetch customers $customers');
         emit(CustomerLoaded(customers));
       } catch (e, trace) {

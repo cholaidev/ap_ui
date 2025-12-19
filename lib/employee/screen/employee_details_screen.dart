@@ -85,7 +85,14 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF2E7D32),
-          leading: const BackButton(color: whiteColor),
+          leading: BackButton(
+            color: whiteColor,
+            onPressed: () {
+              print('back prevented');
+              context.read<EmployeeBloc>().add(LoadEmployees());
+              Navigator.pop(context);
+            },
+          ),
           title: const Text(
             "Employee Details",
             style: TextStyle(color: whiteColor),

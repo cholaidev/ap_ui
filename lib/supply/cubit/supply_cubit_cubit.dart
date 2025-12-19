@@ -14,6 +14,11 @@ class SupplyCubitCubit extends Cubit<SupplyCubitState> {
 
   DateTime supplyDate = DateTime.now();
 
+  updatePriceOfMilk(num? price) {
+    priceofMilk = price!;
+    emit(PriceUpdateSuccessState());
+  }
+
   /* ---------------- SUPPLY DATE ---------------- */
 
   void setSupplyDate(DateTime date) {

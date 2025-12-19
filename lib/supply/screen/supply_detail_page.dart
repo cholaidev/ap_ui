@@ -88,7 +88,14 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: const BackButton(color: whiteColor),
+          leading: BackButton(
+            color: whiteColor,
+            onPressed: () {
+              print('back prevented');
+              context.read<SupplyBloc>().add(LoadSupplies());
+              Navigator.pop(context);
+            },
+          ),
           title: const Text(
             "Supply Details",
             style: TextStyle(color: whiteColor),
@@ -138,6 +145,20 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
 
             final s = state.supply;
             final List items = s['items'] ?? [];
+
+            /// ✅ PARSE SUPPLY DATE (YYYY-MM-DD)
+            final supplyDate = DateTime.parse(s['supply_date']);
+
+            /// ✅ TODAY RANGE
+            final now = DateTime.now();
+            final todayStart = DateTime(now.year, now.month, now.day);
+            final todayEnd = todayStart.add(const Duration(days: 1));
+
+            /// ❌ NOT TODAY → NO DATA
+            if (supplyDate.isBefore(todayStart) ||
+                supplyDate.isAfter(todayEnd)) {
+              return const Center(child: Text("No supply for today"));
+            }
 
             double deliveredQty = 0;
             double deliveredAmount = 0;
@@ -211,7 +232,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                   ),
                   const Divider(),
                   const Text(
-                    "Supply Items",
+                    "Supply Items  (today)",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   ...items.map<Widget>((i) {

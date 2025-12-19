@@ -1,3 +1,5 @@
+import 'package:ap_ui/setting/bloc/setting_bloc.dart';
+import 'package:ap_ui/setting/bloc/setting_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -21,12 +23,18 @@ class SupplyFormPage extends StatefulWidget {
 class _SupplyFormPageState extends State<SupplyFormPage> {
   late SupplyCubitCubit supplyCubit;
   final Map<int, TextEditingController> _qtyControllers = {};
+  late SettingBloc settingBloc;
 
   @override
   void initState() {
     super.initState();
+    settingBloc = context.read<SettingBloc>();
+    settingBloc.add(LoadSettings());
     supplyCubit = context.read<SupplyCubitCubit>();
     supplyCubit.resetState();
+    supplyCubit.updatePriceOfMilk(settingBloc.milkPrice);
+
+    print('milk price ${settingBloc.milkPrice}');
 
     /// PREFILL EDIT DATA
     if (widget.editSupply != null) {
@@ -106,7 +114,8 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
               "customer_id": c['id'],
               "milk": c['milk'],
               "quantity": c['quantity'],
-              "price_per_liter": c['price_per_liter'] ?? 50,
+              "price_per_liter":
+                  c['price_per_liter'] ?? supplyCubit.priceofMilk,
             };
           }).toList(),
     };

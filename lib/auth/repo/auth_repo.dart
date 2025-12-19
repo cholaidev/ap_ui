@@ -65,7 +65,7 @@ class AuthRepository {
       }
     } catch (e) {
       print('⚠️ Exception in register(): $e');
-      throw Exception("Something went wrong. Please try again later.");
+      throw Exception('⚠️ Exception in register(): $e');
     }
   }
 

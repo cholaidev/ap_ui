@@ -78,7 +78,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: const BackButton(color: whiteColor),
+          leading: BackButton(
+            color: whiteColor,
+            onPressed: () {
+              print('back prevented');
+              context.read<CustomerBloc>().add(FetchCustomers());
+              Navigator.pop(context);
+            },
+          ),
           title: const Text(
             "Customer Details",
             style: TextStyle(color: whiteColor),
