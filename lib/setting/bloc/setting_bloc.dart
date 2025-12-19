@@ -20,9 +20,12 @@ class SettingBloc extends Bloc<SettingEvent, SettingState> {
   ) async {
     try {
       emit(SettingLoading());
-      milkPrice = await settingRepo.getMilkPrice();
+      var milkPriceInit = await settingRepo.getMilkPrice();
+      print('get seting price $milkPriceInit');
+      milkPrice = milkPriceInit;
       emit(SettingLoaded(milkPrice));
     } catch (e) {
+      print(';setting error$e');
       emit(SettingError(e.toString()));
     }
   }

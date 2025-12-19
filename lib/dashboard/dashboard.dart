@@ -1,6 +1,7 @@
 import 'package:ap_ui/employee/bloc/employee_state.dart';
 import 'package:ap_ui/setting/bloc/setting_bloc.dart';
 import 'package:ap_ui/setting/bloc/setting_event.dart';
+import 'package:ap_ui/setting/bloc/setting_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -176,15 +177,19 @@ class _DashboardPageState extends State<DashboardPage> {
             const SizedBox(height: 10),
 
             /// 🔹 MILK PRICE CARD
-            BlocBuilder(
-              bloc: settingBloc,
+            BlocBuilder<SettingBloc, SettingState>(
               builder: (context, state) {
-                final cubit = settingBloc;
-                final newValue = cubit.milkPrice;
+                print('check runtime state ${state.runtimeType}');
+                num? milkPrice;
 
-                if (_priceController.text != newValue) {
-                  _priceController.text =
-                      newValue != null ? newValue.toString() : 0.toString();
+                if (state is SettingLoaded) {
+                  milkPrice = state.milkPrice;
+                }
+
+                // sync controller safely
+                final textValue = milkPrice?.toString() ?? '0';
+                if (_priceController.text != textValue) {
+                  _priceController.text = textValue;
                 }
 
                 return Card(
@@ -226,7 +231,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           onChanged: (value) {
                             final price = num.tryParse(value);
                             if (price != null) {
-                              settingBloc.add(UpdateMilkPrice(price));
+                              context.read<SettingBloc>().add(
+                                UpdateMilkPrice(price),
+                              );
                             }
                           },
                         ),

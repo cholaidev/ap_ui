@@ -14,16 +14,34 @@ class SettingRepository {
     return token;
   }
 
-  Future<num?> getMilkPrice() async {
-    final token = _getToken();
+  Future<dynamic> getMilkPrice() async {
+    try {
+      final token = _getToken();
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/settings'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+      final response = await http.get(
+        Uri.parse('$baseUrl/settings'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
-    final body = jsonDecode(response.body);
-    return body['data']?['milk_price'];
+      print('📡 getMilkPrice → Status: ${response.statusCode}');
+      print('📦 getMilkPrice → Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+
+        final price = body['data']?['milk_price'];
+        print('💰 Milk Price: ${price.runtimeType}');
+
+        return num.tryParse(price);
+      } else {
+        print('❌ getMilkPrice failed — status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e, stackTrace) {
+      print('❌ getMilkPrice ERROR: $e');
+      print('📌 STACK TRACE:\n$stackTrace');
+      return null;
+    }
   }
 
   Future<void> updateMilkPrice(num? price) async {

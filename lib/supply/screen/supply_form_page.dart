@@ -32,7 +32,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
     settingBloc.add(LoadSettings());
     supplyCubit = context.read<SupplyCubitCubit>();
     supplyCubit.resetState();
-    supplyCubit.updatePriceOfMilk(settingBloc.milkPrice);
+    supplyCubit.updatePriceOfMilk(settingBloc.milkPrice ?? 50);
 
     print('milk price ${settingBloc.milkPrice}');
 
