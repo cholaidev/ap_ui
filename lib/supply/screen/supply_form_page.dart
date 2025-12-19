@@ -20,18 +20,26 @@ class SupplyFormPage extends StatefulWidget {
 
 class _SupplyFormPageState extends State<SupplyFormPage> {
   late SupplyCubitCubit supplyCubit;
+  final Map<int, TextEditingController> _qtyControllers = {};
 
   @override
   void initState() {
     super.initState();
     supplyCubit = context.read<SupplyCubitCubit>();
+    supplyCubit.resetState();
 
     /// PREFILL EDIT DATA
     if (widget.editSupply != null) {
+      print('check edit supply ${widget.editSupply}');
       supplyCubit.setEmployee(widget.editSupply!['employee']);
-      supplyCubit.setCustomers(
-        List<Map<String, dynamic>>.from(widget.editSupply!['items'] ?? []),
-      );
+      final items = widget.editSupply?['items'] as List<dynamic>? ?? [];
+      final customers =
+          items
+              .where((item) => item['customer'] != null)
+              .map((item) => Map<String, dynamic>.from(item['customer']))
+              .toList();
+
+      supplyCubit.setCustomers(customers);
     }
   }
 
@@ -94,6 +102,14 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
 
   void _discard() {
     Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    for (final c in _qtyControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -191,6 +207,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
           BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
             builder: (context, state) {
               final customers = supplyCubit.selectedCustomers;
+              print('slected customers $customers');
 
               if (customers.isEmpty) {
                 return Column(
@@ -243,6 +260,18 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                       itemCount: customers.length,
                       itemBuilder: (_, i) {
                         final c = customers[i];
+                        final controller = _qtyControllers.putIfAbsent(
+                          c['id'],
+                          () => TextEditingController(
+                            text: c['quantity'].toString(),
+                          ),
+                        );
+                        final newValue = c['quantity'].toString();
+                        if (controller.text != newValue) {
+                          controller.text = newValue;
+                        }
+
+                        print('qty controller ${controller.text}');
                         return Card(
                           child: Padding(
                             padding: const EdgeInsets.all(12),
@@ -288,7 +317,8 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                                     SizedBox(
                                       width: 90,
                                       child: TextFormField(
-                                        initialValue: "${c['quantity']}",
+                                        controller: controller,
+                                        readOnly: true,
                                         keyboardType: TextInputType.number,
                                         decoration: const InputDecoration(
                                           labelText: "Liters",

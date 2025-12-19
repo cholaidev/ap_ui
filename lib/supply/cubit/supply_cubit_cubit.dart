@@ -36,6 +36,7 @@ class SupplyCubitCubit extends Cubit<SupplyCubitState> {
   }
 
   void setCustomers(List<Map<String, dynamic>> customers) {
+    print('select customers set$customers');
     selectedCustomers = customers;
     calculateTotalAmountOfMilk(customers);
     emit(SelectCustomerSuccessState());
@@ -50,7 +51,15 @@ class SupplyCubitCubit extends Cubit<SupplyCubitState> {
     final i = selectedCustomers.indexWhere((c) => c['id'] == id);
     if (i != -1) {
       selectedCustomers[i]['quantity'] = qty;
+      calculateTotalAmountOfMilk(selectedCustomers);
       emit(SelectCustomerSuccessState());
     }
+  }
+
+  void resetState() {
+    selectedEmployee = null;
+    selectedCustomers = [];
+    totalLiters = 0;
+    totalAmountOfMilk = 0;
   }
 }

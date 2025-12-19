@@ -54,7 +54,7 @@ class SupplyBloc extends Bloc<SupplyEvent, SupplyState> {
 
         await supplyRepo.updateSupply(event.id, event.data);
 
-        emit(SupplyUpdateSuccess("Supply updated successfully"));
+        emit(SupplySuccess("Supply updated successfully"));
       } catch (e) {
         emit(SupplyError(e.toString()));
       }

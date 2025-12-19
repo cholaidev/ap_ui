@@ -59,7 +59,7 @@ class SupplyRepository {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         print('📦 getSupplyDetails → Body: $body');
-        return body;
+        return body['data'];
       } else {
         throw Exception(
           'Failed to load supply details (id: $id) — status: ${response.statusCode}',
@@ -105,17 +105,18 @@ class SupplyRepository {
   Future<void> updateSupply(int id, Map<String, dynamic> data) async {
     try {
       final token = _getToken();
-
+      final payload = {...data, 'supply_id': id};
+      print('upply supply payload $payload');
       final response = await http.put(
         Uri.parse('$baseUrl/supplies/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(data),
+        body: jsonEncode(payload),
       );
 
-      print("📤 Update Supply Payload: $data");
+      print("📤 Update Supply Payload: $payload");
       print("📥 Response Status: ${response.statusCode}");
       print("📥 Response Body: ${response.body}");
 
