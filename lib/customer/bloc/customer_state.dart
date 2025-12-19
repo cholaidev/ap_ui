@@ -28,3 +28,8 @@ class CustomerError extends CustomerState {
   final String error;
   CustomerError(this.error);
 }
+
+class CustomerHistoryError extends CustomerState {
+  final String error;
+  CustomerHistoryError(this.error);
+}

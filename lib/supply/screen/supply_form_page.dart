@@ -40,6 +40,25 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
               .toList();
 
       supplyCubit.setCustomers(customers);
+
+      if (widget.editSupply!['supply_date'] != null) {
+        supplyCubit.setSupplyDate(
+          DateTime.parse(widget.editSupply!['supply_date']),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickSupplyDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: supplyCubit.supplyDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null) {
+      supplyCubit.setSupplyDate(picked);
     }
   }
 
@@ -80,6 +99,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       "employee": supplyCubit.selectedEmployee,
       "total_quantity": supplyCubit.totalLiters,
       "total_amount": supplyCubit.totalAmountOfMilk,
+      "supply_date": supplyCubit.supplyDate.toIso8601String(),
       "items":
           supplyCubit.selectedCustomers.map((c) {
             return {
@@ -201,6 +221,38 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
             },
           ),
 
+          const SizedBox(height: 20),
+
+          const Text(
+            "Supply Date",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+            builder: (context, state) {
+              final date = supplyCubit.supplyDate;
+
+              return Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.calendar_today,
+                    color: Colors.green,
+                  ),
+                  title: Text(
+                    "${date.day.toString().padLeft(2, '0')}/"
+                    "${date.month.toString().padLeft(2, '0')}/"
+                    "${date.year}",
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit_calendar),
+                    onPressed: _pickSupplyDate,
+                  ),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 20),
 
           /// ================= CUSTOMERS =================
@@ -346,6 +398,8 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
           ),
 
           const SizedBox(height: 20),
+
+          /// ================= SUPPLY DATE =================
 
           /// ================= TOTAL =================
           BlocBuilder<SupplyCubitCubit, SupplyCubitState>(

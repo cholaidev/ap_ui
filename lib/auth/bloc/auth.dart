@@ -23,6 +23,13 @@ class AuthManager {
     _session = AuthSession(user: state.user, accessToken: state.token ?? '');
   }
 
+  void clearSession() {
+    _session = null;
+    _tenantId = null;
+    _userId = null;
+    _role = null;
+  }
+
   /// Example: set tenant data from API response
   void setTenant(Map<String, dynamic> tenantData) {
     _tenantId = tenantData['pivot']?['tenant_id'];

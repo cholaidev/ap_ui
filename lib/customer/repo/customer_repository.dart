@@ -141,4 +141,53 @@ class CustomerRepository {
       );
     }
   }
+
+  Future<List<dynamic>> customerHistory({
+    required int customerId,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    try {
+      final token = _getToken();
+
+      final queryParams = <String, String>{};
+
+      if (from != null) {
+        queryParams['from_date'] = from.toIso8601String();
+      }
+      if (to != null) {
+        queryParams['to_date'] = to.toIso8601String();
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/customer-history/$customerId',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('📡 customerHistory → Status: ${response.statusCode}');
+      print('📦 customerHistory → Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+
+        // ✅ Always return a list
+        return body['data'] ?? [];
+      } else {
+        throw Exception(
+          'Failed to load customer history — status: ${response.statusCode}',
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ customerHistory ERROR: $e');
+      print('📌 STACK TRACE:\n$stackTrace');
+      rethrow;
+    }
+  }
 }

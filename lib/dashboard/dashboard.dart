@@ -1,7 +1,61 @@
+import 'package:ap_ui/auth/bloc/auth_bloc.dart';
+import 'package:ap_ui/auth/bloc/auth_event.dart';
+import 'package:ap_ui/auth/screen/login_page.dart';
+import 'package:ap_ui/shared/constant/colors.dart';
 import 'package:flutter/material.dart';
 
-class DashboardPage extends StatelessWidget {
+import 'package:ap_ui/auth/bloc/auth.dart';
+import 'package:ap_ui/auth/screen/login_page.dart';
+import 'package:ap_ui/shared/constant/colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  // 🔴 Logout logic
+  void _logout() {
+    context.read<AuthBloc>().add(LogoutEvent());
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
+  // 🔴 Confirmation dialog
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Logout"),
+          content: const Text("Are you sure you want to logout?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                Navigator.pop(context);
+                _logout();
+              },
+              child: const Text("Logout"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -9,7 +63,14 @@ class DashboardPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
-        title: const Text("Dashboard"),
+        title: const Text("Dashboard", style: TextStyle(color: whiteColor)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: whiteColor),
+            tooltip: "Logout",
+            onPressed: _showLogoutDialog,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -17,10 +78,7 @@ class DashboardPage extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-
-          // 🔥 More height to completely stop overflow
           childAspectRatio: 0.80,
-
           children: const [
             _DashboardCard(
               title: "Total Customers",

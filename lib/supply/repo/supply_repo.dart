@@ -17,29 +17,37 @@ class SupplyRepository {
   }
 
   /// 📦 Fetch all supplies
-  Future<List<dynamic>> fetchSupplies() async {
+  Future<List<dynamic>> fetchSupplies({DateTime? from, DateTime? to}) async {
     try {
       final token = _getToken();
 
+      final queryParams = <String, String>{};
+
+      if (from != null) {
+        queryParams['from_date'] = from.toIso8601String();
+      }
+      if (to != null) {
+        queryParams['to_date'] = to.toIso8601String();
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/supplies',
+      ).replace(queryParameters: queryParams);
+
       final response = await http.get(
-        Uri.parse('$baseUrl/supplies'),
+        uri,
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      print('📡 fetchSupplies → Status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        print('📦 fetchSupplies → Body: $body');
         return body['data'] ?? [];
       } else {
         throw Exception(
           'Failed to load supplies — status: ${response.statusCode}',
         );
       }
-    } catch (e, stackTrace) {
-      print('❌ fetchSupplies ERROR: $e');
-      print('📌 STACK TRACE:\n$stackTrace');
+    } catch (e) {
       throw Exception('fetchSupplies failed: $e');
     }
   }

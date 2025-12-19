@@ -12,6 +12,15 @@ class SupplyCubitCubit extends Cubit<SupplyCubitState> {
   double totalAmountOfMilk = 0;
   num priceofMilk = 50;
 
+  DateTime supplyDate = DateTime.now();
+
+  /* ---------------- SUPPLY DATE ---------------- */
+
+  void setSupplyDate(DateTime date) {
+    supplyDate = date;
+    emit(SupplyDateUpdatedState());
+  }
+
   void calculateTotalAmountOfMilk(List customers) {
     double liters = 0;
     double amount = 0;

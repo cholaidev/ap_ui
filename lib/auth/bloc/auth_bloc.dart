@@ -13,6 +13,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
   AuthBloc(this.authRepository) : super(AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
+    on<LogoutEvent>(_onLogout);
     // on<AuthCheckStatus>(_onCheckStatus);
   }
 
@@ -116,6 +117,25 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     } catch (e) {
       print('❌ Error restoring AuthState: $e');
       return null;
+    }
+  }
+
+  Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
+    try {
+      // 🔥 Clear global session
+      AuthManager().clearSession();
+
+      // 🔥 Clear hydrated storage (very important)
+      await HydratedBloc.storage.clear();
+
+      // 🔥 Emit unauthenticated state
+      emit(Unauthenticated());
+
+      print('✅ User logged out successfully');
+    } catch (e, stack) {
+      print('❌ Logout error: $e');
+      print('🧱 StackTrace: $stack');
+      emit(Unauthenticated()); // fallback
     }
   }
 }

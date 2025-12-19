@@ -1,3 +1,4 @@
+import 'package:ap_ui/customer/screen/customer_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ap_ui/shared/constant/colors.dart';
@@ -55,6 +56,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   Widget build(BuildContext context) {
     return BlocListener<CustomerBloc, CustomerState>(
       listener: (context, state) {
+        /// ✅ DELETE SUCCESS
         if (state is DeleteSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -62,13 +64,18 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
               backgroundColor: Colors.red,
             ),
           );
+
           context.read<CustomerBloc>().add(FetchCustomers());
-          // Future.delayed(const Duration(milliseconds: 800), () {
-          Navigator.pop(context); // Go back after deleting
-          // });
+          Navigator.pop(context);
+        }
+
+        /// ❌ ERROR HANDLING
+        if (state is CustomerError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.error), backgroundColor: Colors.red),
+          );
         }
       },
-
       child: Scaffold(
         appBar: AppBar(
           leading: const BackButton(color: whiteColor),
@@ -81,16 +88,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             PopupMenuButton<String>(
               iconColor: whiteColor,
               onSelected: (value) {
-                if (value == "edit") {
-                  final customer =
-                      (context.read<CustomerBloc>().state
-                              as CustomerDetailLoaded)
-                          .customer;
+                final state = context.read<CustomerBloc>().state;
+                if (state is! CustomerDetailLoaded) return;
 
+                if (value == "edit") {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CustomerFormPage(editCustomer: customer),
+                      builder:
+                          (_) => CustomerFormPage(editCustomer: state.customer),
                     ),
                   );
                 } else if (value == "delete") {
@@ -98,8 +104,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                 }
               },
               itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
+                  (_) => const [
+                    PopupMenuItem(
                       value: "edit",
                       child: Row(
                         children: [
@@ -109,7 +115,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: "delete",
                       child: Row(
                         children: [
@@ -124,8 +130,10 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           ],
         ),
 
+        /// 🔥 SCROLLABLE BODY
         body: BlocBuilder<CustomerBloc, CustomerState>(
           builder: (context, state) {
+            print('check state runtime ${state.runtimeType}');
             if (state is CustomerLoading) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -138,52 +146,21 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ROW 1: NAME + PHONE
+                    /// BASIC INFO
                     Row(
                       children: [
                         _info("Name", customer["name"]),
                         _info("Phone", customer["phone"] ?? "N/A"),
                       ],
                     ),
-                    const SizedBox(height: 18),
 
-                    // ROW 2: EMAIL + ASSIGNED SUPPLIER
-                    Row(
-                      children: [
-                        _info("Email", customer["email"] ?? "N/A"),
-                        _info(
-                          "Assigned",
-                          customer["assigned_name"] ?? "Not Assigned",
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // ROW 3: SUPPLIES COUNT
-                    Row(
-                      children: [
-                        _info(
-                          "Supplies Count",
-                          "${customer['supplies_count'] ?? 0}",
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 12),
                     const Divider(),
 
-                    const Text(
-                      "Payment Transactions",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                    /// 🔥 DELIVERY HISTORY (SAFE SCROLL)
+                    CustomerDeliveryHistoryWidget(customerId: widget.id),
 
-                    const Text("Payments list code commented for now..."),
-
-                    const SizedBox(height: 50),
+                    const SizedBox(height: 40),
                   ],
                 ),
               );

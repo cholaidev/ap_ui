@@ -6,6 +6,8 @@ import 'customer_state.dart';
 class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
   // final String token;
   final customerRepo = CustomerRepository();
+
+  List customerHistory = [];
   CustomerBloc() : super(CustomerInitial()) {
     on<FetchCustomers>((event, emit) async {
       emit(CustomerLoading());

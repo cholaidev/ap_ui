@@ -34,3 +34,5 @@ class LogoutRequested extends AuthEvent {
 }
 
 class AuthCheckStatus extends AuthEvent {}
+
+class LogoutEvent extends AuthEvent {}

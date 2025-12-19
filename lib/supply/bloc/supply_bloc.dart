@@ -13,7 +13,10 @@ class SupplyBloc extends Bloc<SupplyEvent, SupplyState> {
       try {
         emit(SupplyLoading());
 
-        final supplies = await supplyRepo.fetchSupplies();
+        final supplies = await supplyRepo.fetchSupplies(
+          from: event.from,
+          to: event.to,
+        );
 
         emit(SupplyLoaded(supplies));
       } catch (e) {

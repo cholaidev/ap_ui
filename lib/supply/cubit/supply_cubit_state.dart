@@ -9,3 +9,5 @@ class SelectEmployeeSuccessState extends SupplyCubitState {}
 class SelectCustomerSuccessState extends SupplyCubitState {}
 
 class SupplyTotalUpdatedState extends SupplyCubitState {}
+
+class SupplyDateUpdatedState extends SupplyCubitState {}

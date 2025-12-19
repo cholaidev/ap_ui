@@ -77,10 +77,10 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
           Navigator.pop(context);
         }
 
-        // if (state is EmployeeUpdateSuccess) {
-        //   context.read<EmployeeBloc>().add(GetEmployeeDetails(widget.id));
-        //   Navigator.pop(context);
-        // }
+        if (state is EmployeeUpdateSuccess) {
+          context.read<EmployeeBloc>().add(GetEmployeeDetails(widget.id));
+          Navigator.pop(context);
+        }
       },
       child: Scaffold(
         appBar: AppBar(

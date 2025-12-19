@@ -1,6 +1,11 @@
 sealed class SupplyEvent {}
 
-class LoadSupplies extends SupplyEvent {}
+class LoadSupplies extends SupplyEvent {
+  final DateTime? from;
+  final DateTime? to;
+
+  LoadSupplies({this.from, this.to});
+}
 
 class GetSupplyDetails extends SupplyEvent {
   final int id;
