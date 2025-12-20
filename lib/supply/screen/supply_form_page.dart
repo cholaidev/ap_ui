@@ -1,5 +1,6 @@
 import 'package:ap_ui/setting/bloc/setting_bloc.dart';
 import 'package:ap_ui/setting/bloc/setting_event.dart';
+import 'package:ap_ui/shared/constant/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -145,7 +146,11 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.editSupply != null ? "Edit Supply" : "Add Supply"),
+        leading: BackButton(color: whiteColor),
+        title: Text(
+          widget.editSupply != null ? "Edit Supply" : "Add Supply",
+          style: TextStyle(color: whiteColor),
+        ),
         backgroundColor: Colors.green.shade700,
       ),
 
@@ -178,15 +183,15 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
           FloatingActionButton.extended(
             heroTag: "discard",
             backgroundColor: Colors.red,
-            icon: const Icon(Icons.close),
-            label: const Text("Discard"),
+            icon: const Icon(Icons.close, color: whiteColor),
+            label: const Text("Discard", style: TextStyle(color: whiteColor)),
             onPressed: _discard,
           ),
           FloatingActionButton.extended(
             heroTag: "save",
             backgroundColor: Colors.green,
-            icon: const Icon(Icons.save),
-            label: const Text("Save"),
+            icon: const Icon(Icons.save, color: whiteColor),
+            label: const Text("Save", style: TextStyle(color: whiteColor)),
             onPressed: _save,
           ),
         ],

@@ -99,6 +99,7 @@ class _DashboardPageState extends State<DashboardPage> {
       /// 🔹 APP BAR
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
+        leading: BackButton(color: whiteColor),
         title: const Text("Dashboard", style: TextStyle(color: whiteColor)),
         actions: [
           IconButton(

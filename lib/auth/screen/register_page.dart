@@ -3,6 +3,7 @@ import 'package:ap_ui/auth/bloc/auth_event.dart';
 import 'package:ap_ui/auth/bloc/auth_state.dart';
 import 'package:ap_ui/dashboard/dashboard.dart';
 import 'package:ap_ui/layout/nav_bar.dart';
+import 'package:ap_ui/shared/constant/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -49,7 +50,7 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
-        title: const Text("Register"),
+        title: const Text("Register", style: TextStyle(color: whiteColor)),
       ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -97,7 +98,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: "Email (optional)",
+                    labelText: "Email",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -152,7 +153,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'staff', child: Text("Staff")),
+                    // DropdownMenuItem(value: 'staff', child: Text("Staff")),
                     DropdownMenuItem(value: 'admin', child: Text("Admin")),
                   ],
                   onChanged: (value) {

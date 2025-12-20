@@ -31,7 +31,9 @@ class SettingRepository {
 
         final price = body['data']?['milk_price'];
         print('💰 Milk Price: ${price.runtimeType}');
-
+        if (price == null) {
+          return 0;
+        }
         return num.tryParse(price);
       } else {
         print('❌ getMilkPrice failed — status: ${response.statusCode}');

@@ -219,7 +219,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
                   DropdownButtonFormField<String>(
                     value: _milkType,
                     items:
-                        ["Cow", "Buffalo", "Goat"]
+                        ["Cow", "Buffalo"]
                             .map(
                               (e) => DropdownMenuItem(value: e, child: Text(e)),
                             )

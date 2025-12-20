@@ -51,11 +51,13 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
         'salary':
             _salaryController.text.isEmpty
                 ? null
-                : int.parse(_salaryController.text),
+                : double.parse(_salaryController.text),
+
         'given_money':
             _givenMoneyController.text.isEmpty
                 ? null
-                : int.parse(_givenMoneyController.text),
+                : double.parse(_givenMoneyController.text),
+
         'is_active': _isActive ? 1 : 0,
       };
 
@@ -196,7 +198,7 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
-                    hintText: "Enter email (optional)",
+                    hintText: "Enter email ",
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -272,14 +274,14 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
             backgroundColor: Colors.red,
             heroTag: "discardBtn",
             onPressed: _discard,
-            label: const Text("Discard"),
+            label: const Text("Discard", style: TextStyle(color: whiteColor)),
             icon: const Icon(Icons.close, color: whiteColor),
           ),
           FloatingActionButton.extended(
             backgroundColor: const Color(0xFF2E7D32),
             heroTag: "saveBtn",
             onPressed: _save,
-            label: const Text("Save"),
+            label: const Text("Save", style: TextStyle(color: whiteColor)),
             icon: const Icon(Icons.save, color: whiteColor),
           ),
         ],
