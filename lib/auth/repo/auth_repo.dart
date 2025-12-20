@@ -4,7 +4,7 @@ import 'package:ap_ui/models/user_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthRepository {
-  final String? baseUrl = dotenv.env['API_URL'];
+  final String? baseUrl = dotenv.env['API_URL']!.trim();
 
   /// 🧩 User login
   Future<Map<String, dynamic>> login(String phone, String password) async {
