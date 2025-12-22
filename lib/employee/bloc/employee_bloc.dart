@@ -28,7 +28,8 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
         final result = await employeeRepo.getEmployeeDetails(event.id);
         emit(EmployeeDetailLoaded(result));
       } catch (e) {
-        emit(EmployeeError("Error: $e"));
+        print('get error $e');
+        emit(EmployeeError(e.toString()));
       }
     });
 
@@ -41,7 +42,8 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
         await employeeRepo.createEmployee(event.employeeData);
         emit(EmployeeSuccess("Employee Created Successfully"));
       } catch (e) {
-        emit(EmployeeError("Error: $e"));
+        print('get error $e');
+        emit(EmployeeError("Error: ${e}"));
       }
     });
 

@@ -6,14 +6,55 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class EmployeeRepository {
   final String? baseUrl = dotenv.env['API_URL'];
 
-  // EmployeeRepository({required this.baseUrl});
-
-  String? _getToken() {
+  // ----------------------------------------------------------------
+  // 🔐 GET TOKEN
+  // ----------------------------------------------------------------
+  String _getToken() {
     final token = AuthManager().session?.accessToken;
     if (token == null || token.isEmpty) {
-      throw Exception('No access token found — user may not be logged in.');
+      throw Exception('Session expired. Please login again.');
     }
     return token;
+  }
+
+  // ----------------------------------------------------------------
+  // 🚨 COMMON ERROR HANDLER
+  // ----------------------------------------------------------------
+  Exception _handleError(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+
+      // 🔴 Laravel validation errors (422)
+      if (response.statusCode == 422 && body['errors'] != null) {
+        final Map<String, dynamic> errors = body['errors'];
+
+        final messages = <String>[];
+
+        errors.forEach((key, value) {
+          if (value is List && value.isNotEmpty) {
+            messages.add(value.first.toString());
+          }
+        });
+
+        return Exception(
+          messages.isNotEmpty ? messages.join('\n') : 'Validation error',
+        );
+      }
+
+      // 🔴 Unauthorized
+      if (response.statusCode == 401) {
+        return Exception('Unauthorized. Please login again.');
+      }
+
+      // 🔴 Other backend errors
+      if (body['message'] != null) {
+        return Exception(body['message']);
+      }
+
+      return Exception('Something went wrong');
+    } catch (e) {
+      return Exception('Unexpected server error');
+    }
   }
 
   // ----------------------------------------------------------------
@@ -21,47 +62,44 @@ class EmployeeRepository {
   // ----------------------------------------------------------------
   Future<List<dynamic>> getEmployees() async {
     try {
-      final token = _getToken();
-
       final response = await http.get(
         Uri.parse('$baseUrl/employees'),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return body['data'] ?? [];
-      } else {
-        throw Exception(
-          "Failed to fetch employees — Status: ${response.statusCode}",
-        );
+        return jsonDecode(response.body)['data'] ?? [];
       }
+
+      throw _handleError(response);
     } catch (e) {
-      throw Exception("Error loading employees: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   // ----------------------------------------------------------------
-  // 📌 GET SINGLE EMPLOYEE DETAILS
+  // 📌 GET SINGLE EMPLOYEE
   // ----------------------------------------------------------------
   Future<Map<String, dynamic>> getEmployeeDetails(int id) async {
     try {
-      final token = _getToken();
-
       final response = await http.get(
         Uri.parse('$baseUrl/employees/$id'),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body)['data'];
-      } else {
-        throw Exception(
-          "Failed to fetch details for employee $id — ${response.statusCode}",
-        );
       }
+
+      throw _handleError(response);
     } catch (e) {
-      throw Exception("Error fetching employee details: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -70,25 +108,21 @@ class EmployeeRepository {
   // ----------------------------------------------------------------
   Future<bool> createEmployee(Map<String, dynamic> data) async {
     try {
-      final token = _getToken();
-
       final response = await http.post(
         Uri.parse('$baseUrl/employees'),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${_getToken()}',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: jsonEncode(data),
       );
 
-      if (response.statusCode == 201) {
-        return true;
-      } else {
-        final body = jsonDecode(response.body);
-        throw Exception(body['message'] ?? "Failed to create employee");
-      }
+      if (response.statusCode == 201) return true;
+
+      throw _handleError(response);
     } catch (e) {
-      throw Exception("Error creating employee: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -97,26 +131,21 @@ class EmployeeRepository {
   // ----------------------------------------------------------------
   Future<bool> updateEmployee(int id, Map<String, dynamic> data) async {
     try {
-      final token = _getToken();
-
       final response = await http.put(
         Uri.parse('$baseUrl/employees/$id'),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${_getToken()}',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: jsonEncode(data),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        throw Exception(
-          "Failed to update employee $id — ${response.statusCode}",
-        );
-      }
+      if (response.statusCode == 200) return true;
+
+      throw _handleError(response);
     } catch (e) {
-      throw Exception("Error updating employee: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -125,22 +154,19 @@ class EmployeeRepository {
   // ----------------------------------------------------------------
   Future<bool> deleteEmployee(int id) async {
     try {
-      final token = _getToken();
-
       final response = await http.delete(
         Uri.parse('$baseUrl/employees/$id'),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        throw Exception(
-          "Failed to delete employee $id — ${response.statusCode}",
-        );
-      }
+      if (response.statusCode == 200) return true;
+
+      throw _handleError(response);
     } catch (e) {
-      throw Exception("Error deleting employee: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 }

@@ -6,158 +6,178 @@ import 'package:http/http.dart' as http;
 class CustomerRepository {
   final String? baseUrl = dotenv.env['API_URL'];
 
-  /// ✅ Get auth token or throw if not available
+  // 🔐 GET TOKEN
   String _getToken() {
     final token = AuthManager().session?.accessToken;
     if (token == null || token.isEmpty) {
-      throw Exception('No access token found — user may not be logged in.');
+      throw Exception('Session expired. Please login again.');
     }
     return token;
   }
 
-  /// 🧾 Fetch all customers
+  // 🚨 COMMON ERROR HANDLER
+  Exception _handleError(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+
+      // 🔴 VALIDATION ERROR (422)
+      if (response.statusCode == 422 && body['errors'] != null) {
+        final Map<String, dynamic> errors = body['errors'];
+        final messages = <String>[];
+
+        errors.forEach((_, value) {
+          if (value is List && value.isNotEmpty) {
+            messages.add(value.first.toString());
+          }
+        });
+
+        return Exception(
+          messages.isNotEmpty ? messages.join('\n') : 'Validation error',
+        );
+      }
+
+      // 🔴 UNAUTHORIZED
+      if (response.statusCode == 401) {
+        return Exception('Unauthorized. Please login again.');
+      }
+
+      // 🔴 OTHER ERRORS
+      if (body['message'] != null) {
+        return Exception(body['message']);
+      }
+
+      return Exception('Something went wrong');
+    } catch (_) {
+      return Exception('Unexpected server error');
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // 📌 GET ALL CUSTOMERS
+  // ----------------------------------------------------------------
   Future<List<dynamic>> fetchCustomers() async {
     try {
-      final token = _getToken();
-
       final response = await http.get(
         Uri.parse('$baseUrl/customers'),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
       );
 
-      print('📡 fetchCustomers → Status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        print('📦 fetchCustomers → Body: $body');
-        return body['data'] ?? [];
-      } else {
-        throw Exception(
-          'Failed to load customers — status: ${response.statusCode}',
-        );
+        return jsonDecode(response.body)['data'] ?? [];
       }
-    } catch (e, stackTrace) {
-      print('❌ fetchCustomers ERROR: $e');
-      print('📌 STACK TRACE:\n$stackTrace');
-      throw Exception('fetchCustomers failed: $e');
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  /// 👤 Get details of one customer
+  // ----------------------------------------------------------------
+  // 📌 GET CUSTOMER DETAILS
+  // ----------------------------------------------------------------
   Future<Map<String, dynamic>> getCustomerDetails(int id) async {
     try {
-      final token = _getToken();
-
       final response = await http.get(
         Uri.parse('$baseUrl/customers/$id'),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
-        print('customerdetails${jsonDecode(response.body)}');
-        return jsonDecode(response.body);
-      } else {
-        throw Exception(
-          'Failed to load customer details (id: $id) — Status: ${response.statusCode}',
-        );
+        return jsonDecode(response.body)['data'];
       }
-    } catch (e) {
-      // Log error for debugging
-      print("❌ getCustomerDetails Error (id=$id): $e");
 
-      // Re-throw error so UI can handle it (show popup/snackbar)
-      throw Exception("Unable to fetch customer details. Error: $e");
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  /// ➕ Add new customer
+  // ----------------------------------------------------------------
+  // 📌 ADD CUSTOMER
+  // ----------------------------------------------------------------
   Future<void> addCustomer(Map<String, dynamic> data) async {
     try {
-      final token = _getToken();
-      if (token == null || token.isEmpty) {
-        throw Exception("Auth token missing");
-      }
-
       final response = await http.post(
         Uri.parse('$baseUrl/customers'),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${_getToken()}',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: jsonEncode(data),
       );
 
-      print("📤 Add Customer Request: $data");
-      print("📥 Response Status: ${response.statusCode}");
-      print("📥 Response Body: ${response.body}");
+      if (response.statusCode == 201) return;
 
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception(
-          'Failed to add customer — status: ${response.statusCode}',
-        );
-      }
-    } catch (e, stackTrace) {
-      print("❌ addCustomer error: $e");
-      print("🧵 StackTrace:");
-      print(stackTrace);
-      throw Exception("Unable to add customer: $e");
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  /// ✏️ Update existing customer
+  // ----------------------------------------------------------------
+  // 📌 UPDATE CUSTOMER
+  // ----------------------------------------------------------------
   Future<void> updateCustomer(int id, Map<String, dynamic> data) async {
-    final token = _getToken();
-
-    final response = await http.put(
-      Uri.parse('$baseUrl/customers/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(data),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Failed to update customer (id: $id) — status: ${response.statusCode}',
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/customers/$id'),
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(data),
       );
+
+      if (response.statusCode == 200) return;
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
+  // ----------------------------------------------------------------
+  // 📌 DELETE CUSTOMER
+  // ----------------------------------------------------------------
   Future<void> deleteCustomer(int id) async {
-    final token = _getToken();
-
-    final response = await http.delete(
-      Uri.parse('$baseUrl/customers/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Failed to update customer (id: $id) — status: ${response.statusCode}',
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/customers/$id'),
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
       );
+
+      if (response.statusCode == 200) return;
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
+  // ----------------------------------------------------------------
+  // 📌 CUSTOMER DELIVERY HISTORY
+  // ----------------------------------------------------------------
   Future<List<dynamic>> customerHistory({
     required int customerId,
     DateTime? from,
     DateTime? to,
   }) async {
     try {
-      final token = _getToken();
-
       final queryParams = <String, String>{};
 
-      if (from != null) {
-        queryParams['from_date'] = from.toIso8601String();
-      }
-      if (to != null) {
-        queryParams['to_date'] = to.toIso8601String();
-      }
+      if (from != null) queryParams['from_date'] = from.toIso8601String();
+      if (to != null) queryParams['to_date'] = to.toIso8601String();
 
       final uri = Uri.parse(
         '$baseUrl/customer-history/$customerId',
@@ -166,28 +186,18 @@ class CustomerRepository {
       final response = await http.get(
         uri,
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${_getToken()}',
           'Accept': 'application/json',
         },
       );
 
-      print('📡 customerHistory → Status: ${response.statusCode}');
-      print('📦 customerHistory → Body: ${response.body}');
-
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-
-        // ✅ Always return a list
-        return body['data'] ?? [];
-      } else {
-        throw Exception(
-          'Failed to load customer history — status: ${response.statusCode}',
-        );
+        return jsonDecode(response.body)['data'] ?? [];
       }
-    } catch (e, stackTrace) {
-      print('❌ customerHistory ERROR: $e');
-      print('📌 STACK TRACE:\n$stackTrace');
-      rethrow;
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 }

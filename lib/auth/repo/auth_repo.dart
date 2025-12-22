@@ -1,33 +1,76 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:ap_ui/models/user_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthRepository {
   final String? baseUrl = dotenv.env['API_URL'];
 
-  /// 🧩 User login
-  Future<Map<String, dynamic>> login(String phone, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/login'),
-      headers: {'Accept': 'application/json'},
-      body: {'phone': phone, 'password': password},
-    );
+  // 🚨 COMMON AUTH ERROR HANDLER
+  Exception _handleError(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
 
-    final data = jsonDecode(response.body);
+      // 🔴 Validation errors (Laravel 422)
+      if (response.statusCode == 422 && body['errors'] != null) {
+        final Map<String, dynamic> errors = body['errors'];
+        final messages = <String>[];
 
-    if (response.statusCode == 200) {
-      return {
-        "message": data["message"],
-        "token": data["token"],
-        "user": data["user"],
-      };
-    } else {
-      throw Exception(data["message"] ?? "Login failed");
+        errors.forEach((_, value) {
+          if (value is List && value.isNotEmpty) {
+            messages.add(value.first.toString());
+          }
+        });
+
+        return Exception(
+          messages.isNotEmpty ? messages.join('\n') : 'Validation error',
+        );
+      }
+
+      // 🔴 Unauthorized
+      if (response.statusCode == 401) {
+        return Exception(body['message'] ?? 'Invalid credentials');
+      }
+
+      // 🔴 Other backend errors
+      if (body['message'] != null) {
+        return Exception(body['message']);
+      }
+
+      return Exception('Authentication failed');
+    } catch (_) {
+      return Exception('Unexpected server error');
     }
   }
 
-  /// 🧾 User register
+  // ----------------------------------------------------------------
+  // 🔐 LOGIN
+  // ----------------------------------------------------------------
+  Future<Map<String, dynamic>> login(String phone, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/login'),
+        headers: {'Accept': 'application/json'},
+        body: {'phone': phone, 'password': password},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'message': data['message'],
+          'token': data['token'],
+          'user': data['user'],
+        };
+      }
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // 🧾 REGISTER
+  // ----------------------------------------------------------------
   Future<Map<String, dynamic>> register(
     String name,
     String email,
@@ -36,8 +79,6 @@ class AuthRepository {
     String role,
   ) async {
     try {
-      print('base url $baseUrl');
-
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
         headers: {'Accept': 'application/json'},
@@ -51,30 +92,18 @@ class AuthRepository {
         },
       );
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
         return {
-          "message": data["message"] ?? "Registration successful",
-          "token": data["token"],
-          "user": data["user"],
+          'message': data['message'] ?? 'Registration successful',
+          'token': data['token'],
+          'user': data['user'],
         };
-      } else {
-        print('❌ Register error: ${data["message"]}');
-        throw Exception(data["message"] ?? "Registration failed");
       }
+
+      throw _handleError(response);
     } catch (e) {
-      print('⚠️ Exception in register(): $e');
-      throw Exception('⚠️ Exception in register(): $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
-
-  // Future<UserModel?> getSavedUser() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final userData = prefs.getString('user');
-  //   if (userData != null) {
-  //     return UserModel.fromJson(jsonDecode(userData));
-  //   }
-  //   return null;
-  // }
 }

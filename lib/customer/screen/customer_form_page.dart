@@ -24,7 +24,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
   final _quantityController = TextEditingController();
   final _phoneController = TextEditingController(); // ✅ ADDED
 
-  String? _milkType;
+  String? _milkType = 'Cow';
 
   @override
   void initState() {

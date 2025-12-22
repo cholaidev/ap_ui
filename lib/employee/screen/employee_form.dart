@@ -20,7 +20,7 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
   // CONTROLLERS
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
+  // final _emailController = TextEditingController();
   final _salaryController = TextEditingController();
   final _givenMoneyController = TextEditingController();
 
@@ -34,7 +34,7 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
       final emp = widget.editEmployee!;
       _nameController.text = emp['name'] ?? '';
       _phoneController.text = emp['phone'] ?? '';
-      _emailController.text = emp['email'] ?? '';
+      // _emailController.text = emp['email'] ?? '';
       _salaryController.text = emp['salary']?.toString() ?? '';
       _givenMoneyController.text = emp['given_money']?.toString() ?? '';
       _isActive = emp['is_active'] == 1;
@@ -47,7 +47,7 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
       final data = {
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
+        // 'email': _emailController.text.trim(),
         'salary':
             _salaryController.text.isEmpty
                 ? null
@@ -190,20 +190,20 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
                 const SizedBox(height: 16),
 
                 /// EMAIL
-                const Text(
-                  "Email",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    hintText: "Enter email ",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
+                // const Text(
+                //   "Email",
+                //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                // ),
+                // const SizedBox(height: 6),
+                // TextFormField(
+                //   controller: _emailController,
+                //   decoration: const InputDecoration(
+                //     hintText: "Enter email ",
+                //     border: OutlineInputBorder(),
+                //   ),
+                // ),
 
-                const SizedBox(height: 16),
+                // const SizedBox(height: 16),
 
                 /// SALARY
                 const Text(
