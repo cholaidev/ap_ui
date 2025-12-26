@@ -14,8 +14,13 @@ import '../bloc/supply_state.dart';
 
 class SupplyFormPage extends StatefulWidget {
   final Map<String, dynamic>? editSupply;
+  final bool is_from_assigned;
 
-  const SupplyFormPage({super.key, this.editSupply});
+  const SupplyFormPage({
+    super.key,
+    this.editSupply,
+    required this.is_from_assigned,
+  });
 
   @override
   State<SupplyFormPage> createState() => _SupplyFormPageState();
@@ -29,6 +34,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
   @override
   void initState() {
     super.initState();
+    print('check init supply ${widget.is_from_assigned}');
     settingBloc = context.read<SettingBloc>();
     settingBloc.add(LoadSettings());
     supplyCubit = context.read<SupplyCubitCubit>();
@@ -108,7 +114,11 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       "employee": supplyCubit.selectedEmployee,
       "total_quantity": supplyCubit.totalLiters,
       "total_amount": supplyCubit.totalAmountOfMilk,
-      "supply_date": supplyCubit.supplyDate.toIso8601String(),
+      "supply_date":
+          widget.is_from_assigned! == true
+              ? null
+              : supplyCubit.supplyDate.toIso8601String(),
+      'is_assigned_only': widget.is_from_assigned! == true ? 1 : 0,
       "items":
           supplyCubit.selectedCustomers.map((c) {
             return {
@@ -120,7 +130,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
             };
           }).toList(),
     };
-
+    print('check supply payload $payload');
     if (widget.editSupply != null) {
       context.read<SupplyBloc>().add(
         UpdateSupply(widget.editSupply!['id'], payload),
@@ -158,7 +168,9 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       body: BlocListener<SupplyBloc, SupplyState>(
         listener: (context, state) {
           if (state is SupplySuccess) {
-            context.read<SupplyBloc>().add(LoadSupplies());
+            context.read<SupplyBloc>().add(
+              LoadSupplies(is_from_assigned: widget.is_from_assigned),
+            );
 
             ScaffoldMessenger.of(
               context,
@@ -236,37 +248,37 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
           ),
 
           const SizedBox(height: 20),
+          if (widget.is_from_assigned! == false)
+            const Text(
+              "Supply Date",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          if (widget.is_from_assigned! == false) const SizedBox(height: 8),
+          if (widget.is_from_assigned! == false)
+            BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
+              builder: (context, state) {
+                final date = supplyCubit.supplyDate;
 
-          const Text(
-            "Supply Date",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-
-          BlocBuilder<SupplyCubitCubit, SupplyCubitState>(
-            builder: (context, state) {
-              final date = supplyCubit.supplyDate;
-
-              return Card(
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.calendar_today,
-                    color: Colors.green,
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.calendar_today,
+                      color: Colors.green,
+                    ),
+                    title: Text(
+                      "${date.day.toString().padLeft(2, '0')}/"
+                      "${date.month.toString().padLeft(2, '0')}/"
+                      "${date.year}",
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit_calendar),
+                      onPressed: _pickSupplyDate,
+                    ),
                   ),
-                  title: Text(
-                    "${date.day.toString().padLeft(2, '0')}/"
-                    "${date.month.toString().padLeft(2, '0')}/"
-                    "${date.year}",
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit_calendar),
-                    onPressed: _pickSupplyDate,
-                  ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
           const SizedBox(height: 20),
 
           /// ================= CUSTOMERS =================
@@ -431,9 +443,22 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                       "Total: ${supplyCubit.totalLiters.toStringAsFixed(2)} L",
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    Text(
-                      "₹ ${supplyCubit.totalAmountOfMilk.toStringAsFixed(2)}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.people,
+                          size: 18,
+                          color: Colors.black87,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          supplyCubit.selectedCustomers.length.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

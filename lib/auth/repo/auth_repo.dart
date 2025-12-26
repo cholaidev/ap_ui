@@ -79,6 +79,9 @@ class AuthRepository {
     String role,
   ) async {
     try {
+      print(
+        'chek register payload ${{'name': name, 'email': email, 'password': password, 'password_confirmation': password, 'phone': phone, 'role': role}}',
+      );
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
         headers: {'Accept': 'application/json'},
@@ -103,6 +106,7 @@ class AuthRepository {
 
       throw _handleError(response);
     } catch (e) {
+      print('catch error $e');
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }

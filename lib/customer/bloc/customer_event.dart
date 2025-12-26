@@ -26,3 +26,8 @@ class DeleteCustomer extends CustomerEvent {
   final int id;
   DeleteCustomer(this.id);
 }
+
+class BulkCustomer extends CustomerEvent {
+  final List<Map<String, dynamic>> validCustomers;
+  BulkCustomer(this.validCustomers);
+}

@@ -3,8 +3,9 @@ sealed class SupplyEvent {}
 class LoadSupplies extends SupplyEvent {
   final DateTime? from;
   final DateTime? to;
+  final is_from_assigned;
 
-  LoadSupplies({this.from, this.to});
+  LoadSupplies({this.from, this.to, required this.is_from_assigned});
 }
 
 class GetSupplyDetails extends SupplyEvent {
@@ -26,4 +27,8 @@ class UpdateSupply extends SupplyEvent {
 class DeleteSupply extends SupplyEvent {
   final int id;
   DeleteSupply(this.id);
+}
+
+class assignSupply extends SupplyEvent {
+  assignSupply();
 }

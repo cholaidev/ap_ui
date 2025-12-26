@@ -33,3 +33,15 @@ class CustomerHistoryError extends CustomerState {
   final String error;
   CustomerHistoryError(this.error);
 }
+
+class BulkCustomerSuccessState extends CustomerState {
+  final int inserted;
+  final int skipped;
+  final List skippedPhones;
+
+  BulkCustomerSuccessState({
+    required this.inserted,
+    required this.skipped,
+    required this.skippedPhones,
+  });
+}

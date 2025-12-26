@@ -23,3 +23,8 @@ class SettingError extends SettingState {
 
   SettingError(this.error);
 }
+
+class CheckSupplyState extends SettingState {
+  final bool isSupplied;
+  CheckSupplyState(this.isSupplied);
+}

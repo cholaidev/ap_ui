@@ -9,3 +9,7 @@ class UpdateMilkPrice extends SettingEvent {
 
   UpdateMilkPrice(this.milkPrice);
 }
+
+class CheckSupply extends SettingEvent {
+  CheckSupply();
+}

@@ -10,8 +10,13 @@ import 'supply_form_page.dart';
 
 class SupplyDetailPage extends StatefulWidget {
   final int id;
+  final is_from_assigned;
 
-  const SupplyDetailPage({super.key, required this.id});
+  const SupplyDetailPage({
+    super.key,
+    required this.id,
+    required this.is_from_assigned,
+  });
 
   @override
   State<SupplyDetailPage> createState() => _SupplyDetailPageState();
@@ -62,7 +67,9 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
 
-          context.read<SupplyBloc>().add(LoadSupplies());
+          context.read<SupplyBloc>().add(
+            LoadSupplies(is_from_assigned: widget.is_from_assigned),
+          );
           Navigator.pop(context);
         }
 
@@ -75,7 +82,9 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
             ),
           );
 
-          context.read<SupplyBloc>().add(LoadSupplies());
+          context.read<SupplyBloc>().add(
+            LoadSupplies(is_from_assigned: widget.is_from_assigned),
+          );
           Navigator.pop(context);
         }
 
@@ -92,7 +101,9 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
             color: whiteColor,
             onPressed: () {
               print('back prevented');
-              context.read<SupplyBloc>().add(LoadSupplies());
+              context.read<SupplyBloc>().add(
+                LoadSupplies(is_from_assigned: widget.is_from_assigned),
+              );
               Navigator.pop(context);
             },
           ),
@@ -106,13 +117,18 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
               iconColor: whiteColor,
               onSelected: (value) {
                 final state = context.read<SupplyBloc>().state;
+                print('state check $state');
                 if (state is! SupplyDetailLoaded) return;
 
                 if (value == "edit") {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => SupplyFormPage(editSupply: state.supply),
+                      builder:
+                          (_) => SupplyFormPage(
+                            editSupply: state.supply,
+                            is_from_assigned: widget.is_from_assigned,
+                          ),
                     ),
                   );
                 } else if (value == "delete") {

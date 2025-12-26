@@ -2,6 +2,9 @@ import 'package:ap_ui/employee/bloc/employee_state.dart';
 import 'package:ap_ui/setting/bloc/setting_bloc.dart';
 import 'package:ap_ui/setting/bloc/setting_event.dart';
 import 'package:ap_ui/setting/bloc/setting_state.dart';
+import 'package:ap_ui/supply/screen/supply_form_page.dart';
+import 'package:ap_ui/supply/screen/supply_list_screen.dart';
+import 'package:ap_ui/supply/supply.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -43,9 +46,34 @@ class _DashboardPageState extends State<DashboardPage> {
     employeeBloc = context.read<EmployeeBloc>()..add(LoadEmployees());
     supplyCubit = context.read<SupplyCubitCubit>();
     settingBloc = context.read<SettingBloc>();
+    settingBloc.add(CheckSupply());
     settingBloc.add(LoadSettings());
     _priceController = TextEditingController(
       text: supplyCubit.priceofMilk.toString(),
+    );
+  }
+
+  Future<void> _openSupplyDatePicker() async {
+    final DateTime today = DateTime.now();
+
+    final DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: today, // 👈 default today
+      firstDate: DateTime(today.year - 1),
+      lastDate: DateTime(today.year + 1),
+    );
+
+    if (selectedDate == null) return;
+
+    // 🔥 DISPATCH SUPPLY ACTION
+    // supplyCubit.assignSupplyForDate(selectedDate);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "Supply assigned for ${selectedDate.toLocal().toString().split(' ')[0]}",
+        ),
+      ),
     );
   }
 
@@ -115,6 +143,104 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            BlocBuilder<SettingBloc, SettingState>(
+              builder: (context, state) {
+                bool isLocked = false;
+
+                if (state is CheckSupplyState) {
+                  isLocked = state.isSupplied;
+                }
+
+                return Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.local_shipping, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text(
+                              "Init Supply",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.list, color: whiteColor),
+                          label: Text(
+                            style: TextStyle(color: whiteColor),
+
+                            "init supply",
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2E7D32),
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => const SupplyListPage(
+                                      is_from_assigned: true,
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: 10),
+
+                        ElevatedButton.icon(
+                          icon: const Icon(
+                            Icons.calendar_today,
+                            color: whiteColor,
+                          ),
+                          label: Text(
+                            style: TextStyle(color: whiteColor),
+                            isLocked
+                                ? "Supply Already Generated Today"
+                                : "Select Supply Date",
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                isLocked
+                                    ? Colors.grey
+                                    : const Color(0xFF2E7D32),
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                          onPressed: isLocked ? null : _openSupplyDatePicker,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Text(
+                          isLocked
+                              ? "Supply has already been generated for today"
+                              : "This will assign supply to all customers for selected date",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
             /// 🔹 DASHBOARD STATS
             GridView.count(
               crossAxisCount: 2,

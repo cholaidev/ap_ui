@@ -10,7 +10,8 @@ import 'supply_form_page.dart';
 import 'supply_detail_page.dart';
 
 class SupplyListPage extends StatefulWidget {
-  const SupplyListPage({super.key});
+  final bool is_from_assigned;
+  const SupplyListPage({super.key, required this.is_from_assigned});
 
   @override
   State<SupplyListPage> createState() => _SupplyListPageState();
@@ -27,7 +28,11 @@ class _SupplyListPageState extends State<SupplyListPage> {
     /// 🔥 DEFAULT = TODAY
     final range = _resolveDateRange(DateFilterType.today);
     context.read<SupplyBloc>().add(
-      LoadSupplies(from: range.start, to: range.end),
+      LoadSupplies(
+        from: range.start,
+        to: range.end,
+        is_from_assigned: widget.is_from_assigned,
+      ),
     );
   }
 
@@ -76,7 +81,11 @@ class _SupplyListPageState extends State<SupplyListPage> {
       });
 
       context.read<SupplyBloc>().add(
-        LoadSupplies(from: range.start, to: range.end),
+        LoadSupplies(
+          from: range.start,
+          to: range.end,
+          is_from_assigned: widget.is_from_assigned,
+        ),
       );
     } else {
       final range = _resolveDateRange(value);
@@ -87,7 +96,11 @@ class _SupplyListPageState extends State<SupplyListPage> {
       });
 
       context.read<SupplyBloc>().add(
-        LoadSupplies(from: range.start, to: range.end),
+        LoadSupplies(
+          from: range.start,
+          to: range.end,
+          is_from_assigned: widget.is_from_assigned,
+        ),
       );
     }
   }
@@ -195,7 +208,11 @@ class _SupplyListPageState extends State<SupplyListPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => SupplyDetailPage(id: s['id']),
+                                builder:
+                                    (_) => SupplyDetailPage(
+                                      id: s['id'],
+                                      is_from_assigned: widget.is_from_assigned,
+                                    ),
                               ),
                             );
                           },
@@ -245,7 +262,11 @@ class _SupplyListPageState extends State<SupplyListPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const SupplyFormPage()),
+            MaterialPageRoute(
+              builder:
+                  (_) =>
+                      SupplyFormPage(is_from_assigned: widget.is_from_assigned),
+            ),
           );
         },
       ),

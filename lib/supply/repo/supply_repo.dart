@@ -17,11 +17,18 @@ class SupplyRepository {
   }
 
   /// 📦 Fetch all supplies
-  Future<List<dynamic>> fetchSupplies({DateTime? from, DateTime? to}) async {
+  Future<List<dynamic>> fetchSupplies({
+    DateTime? from,
+    DateTime? to,
+    required bool is_from_assigned,
+  }) async {
     try {
       final token = _getToken();
 
       final queryParams = <String, String>{};
+
+      // 👇 THIS IS THE KEY FIX
+      queryParams['is_assigned_only'] = is_from_assigned ? '1' : '0';
 
       if (from != null) {
         queryParams['from_date'] = from.toIso8601String();
@@ -36,7 +43,10 @@ class SupplyRepository {
 
       final response = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {

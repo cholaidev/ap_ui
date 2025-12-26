@@ -200,4 +200,44 @@ class CustomerRepository {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
+
+  Future<Map<String, dynamic>> bulkImportCustomers(
+    List<Map<String, dynamic>> customers,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/customers/bulk-import'),
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+
+        // ✅ FIXED PAYLOAD
+        body: jsonEncode({"customers": customers}),
+      );
+
+      final decoded = jsonDecode(response.body);
+
+      // ✅ SUCCESS
+      if (response.statusCode == 200 && decoded['status'] == true) {
+        return decoded;
+      }
+
+      // ❌ VALIDATION ERROR (422)
+      if (response.statusCode == 422) {
+        throw Exception(
+          decoded['message'] ?? 'Validation failed during bulk import',
+        );
+      }
+
+      // ❌ OTHER SERVER ERRORS
+      throw Exception(decoded['message'] ?? 'Bulk import failed');
+    } catch (e, stackTrace) {
+      print('Bulk import error: $e');
+      print(stackTrace);
+
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
 }

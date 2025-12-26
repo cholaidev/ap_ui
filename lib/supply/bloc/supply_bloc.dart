@@ -16,6 +16,7 @@ class SupplyBloc extends Bloc<SupplyEvent, SupplyState> {
         final supplies = await supplyRepo.fetchSupplies(
           from: event.from,
           to: event.to,
+          is_from_assigned: event.is_from_assigned,
         );
 
         emit(SupplyLoaded(supplies));

@@ -1,3 +1,4 @@
+import 'package:ap_ui/customer/screen/customer_bulk_import_screen.dart';
 import 'package:ap_ui/shared/constant/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,6 +26,32 @@ class _CustomerListPageState extends State<CustomerListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        actions: [
+          PopupMenuButton<String>(
+            iconColor: whiteColor,
+            onSelected: (value) {
+              if (value == "bulk") {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => BulkImportPage()),
+                );
+              }
+            },
+            itemBuilder:
+                (_) => const [
+                  PopupMenuItem(
+                    value: "bulk",
+                    child: Row(
+                      children: [
+                        Icon(Icons.upload_file, size: 18),
+                        SizedBox(width: 8),
+                        Text("Bulk Import"),
+                      ],
+                    ),
+                  ),
+                ],
+          ),
+        ],
         leading: const BackButton(color: whiteColor),
         title: const Text("Customers", style: TextStyle(color: whiteColor)),
         backgroundColor: const Color(0xFF2E7D32),
@@ -135,16 +162,22 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      /// NAME
-                                      Text(
-                                        c['name'] ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                      /// NAME (takes remaining space)
+                                      Expanded(
+                                        child: Text(
+                                          c['name'] ?? '',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
 
-                                      /// MILK + LITERS
+                                      const SizedBox(width: 8),
+
+                                      /// MILK + LITERS (fixed size)
                                       Text(
                                         "${c['milk']} (${c['quantity']} L)",
                                         style: const TextStyle(

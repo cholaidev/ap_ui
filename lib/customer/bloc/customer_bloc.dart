@@ -69,5 +69,24 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
         emit(CustomerError(e.toString()));
       }
     });
+
+    on<BulkCustomer>((event, emit) async {
+      emit(CustomerLoading());
+      try {
+        final response = await customerRepo.bulkImportCustomers(
+          event.validCustomers,
+        );
+
+        emit(
+          BulkCustomerSuccessState(
+            inserted: response['inserted'],
+            skipped: response['skipped'],
+            skippedPhones: response['skipped_phones'],
+          ),
+        );
+      } catch (e) {
+        emit(CustomerError(e.toString()));
+      }
+    });
   }
 }

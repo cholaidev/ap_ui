@@ -58,4 +58,19 @@ class SettingRepository {
       body: jsonEncode({'milk_price': price}),
     );
   }
+
+  Future<Map<String, dynamic>> fetchSettings() async {
+    final token = _getToken();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl//settings/all'),
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body)['data'];
+    } else {
+      throw Exception('Failed to fetch settings');
+    }
+  }
 }

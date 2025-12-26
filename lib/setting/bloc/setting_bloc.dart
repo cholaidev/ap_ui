@@ -3,6 +3,7 @@ import 'package:ap_ui/setting/setting_repo.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'setting_event.dart';
 import 'setting_state.dart';
+import 'package:ap_ui/shared/today_supply_generation.dart';
 
 class SettingBloc extends Bloc<SettingEvent, SettingState> {
   final settingRepo = SettingRepository();
@@ -12,6 +13,7 @@ class SettingBloc extends Bloc<SettingEvent, SettingState> {
   SettingBloc() : super(SettingInitial()) {
     on<LoadSettings>(_loadSettings);
     on<UpdateMilkPrice>(_updateMilkPrice);
+    on<CheckSupply>(checkSupply);
   }
 
   Future<void> _loadSettings(
@@ -40,6 +42,20 @@ class SettingBloc extends Bloc<SettingEvent, SettingState> {
       milkPrice = event.milkPrice;
       emit(SettingSuccess("Milk price updated"));
       emit(SettingLoaded(milkPrice));
+    } catch (e) {
+      emit(SettingError(e.toString()));
+    }
+  }
+
+  Future<void> checkSupply(
+    CheckSupply event,
+    Emitter<SettingState> emit,
+  ) async {
+    try {
+      emit(SettingLoading());
+      final settings = await settingRepo.fetchSettings();
+      final isLocked = isTodaySupplyGenerated(settings);
+      emit(CheckSupplyState(isLocked));
     } catch (e) {
       emit(SettingError(e.toString()));
     }

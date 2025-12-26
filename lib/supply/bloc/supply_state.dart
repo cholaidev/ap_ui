@@ -38,3 +38,7 @@ class SupplyError extends SupplyState {
   final String error;
   SupplyError(this.error);
 }
+
+class AssignSupplySuccessState extends SupplyState {
+  AssignSupplySuccessState();
+}

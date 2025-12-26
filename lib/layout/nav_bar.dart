@@ -19,7 +19,7 @@ class _MainNavigationState extends State<MainNavigation> {
     DashboardPage(),
     CustomerListPage(),
     EmployeeListPage(),
-    SupplyListPage(),
+    SupplyListPage(is_from_assigned: false),
   ];
 
   @override

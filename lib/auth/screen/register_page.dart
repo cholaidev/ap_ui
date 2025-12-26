@@ -49,6 +49,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
+        leading: BackButton(color: whiteColor),
         backgroundColor: const Color(0xFF2E7D32),
         title: const Text("Register", style: TextStyle(color: whiteColor)),
       ),
@@ -107,21 +108,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
 
                 // Phone
-                TextFormField(
+                TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
+                  // inputFormatters: [
+                  //   FilteringTextInputFormatter.digitsOnly,
+                  // ],
                   decoration: InputDecoration(
-                    labelText: "Phone",
+                    labelText: "Phone Number",
+                    counterText: "", // hides the counter below
+                    // prefixIcon: const Icon(Icons.phone),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  validator:
-                      (value) =>
-                          value == null || value.isEmpty
-                              ? "Phone number is required"
-                              : null,
                 ),
                 const SizedBox(height: 20),
 
