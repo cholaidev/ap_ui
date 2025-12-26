@@ -1,7 +1,10 @@
+import 'package:ap_ui/dashboard/bloc/assigned_supply_bloc.dart';
+import 'package:ap_ui/dashboard/bloc/assigned_supply_state.dart';
 import 'package:ap_ui/employee/bloc/employee_state.dart';
 import 'package:ap_ui/setting/bloc/setting_bloc.dart';
 import 'package:ap_ui/setting/bloc/setting_event.dart';
 import 'package:ap_ui/setting/bloc/setting_state.dart';
+import 'package:ap_ui/supply/bloc/supply_bloc.dart';
 import 'package:ap_ui/supply/screen/supply_form_page.dart';
 import 'package:ap_ui/supply/screen/supply_list_screen.dart';
 import 'package:ap_ui/supply/supply.dart';
@@ -35,6 +38,7 @@ class _DashboardPageState extends State<DashboardPage> {
   late EmployeeBloc employeeBloc;
   late SupplyCubitCubit supplyCubit;
   late SettingBloc settingBloc;
+  late AssignedSupplyBloc assignedSupplyBloc;
 
   late TextEditingController _priceController;
 
@@ -46,10 +50,49 @@ class _DashboardPageState extends State<DashboardPage> {
     employeeBloc = context.read<EmployeeBloc>()..add(LoadEmployees());
     supplyCubit = context.read<SupplyCubitCubit>();
     settingBloc = context.read<SettingBloc>();
+    assignedSupplyBloc = context.read<AssignedSupplyBloc>();
     settingBloc.add(CheckSupply());
     settingBloc.add(LoadSettings());
     _priceController = TextEditingController(
       text: supplyCubit.priceofMilk.toString(),
+    );
+  }
+
+  Future<void> _confirmAssignSupplyDate(DateTime selectedDate) async {
+    final formattedDate = selectedDate.toLocal().toString().split(' ')[0];
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Supply Generation"),
+          content: Text(
+            "Are you sure you want to generate supply for\n\n📅 $formattedDate ?\n\nThis action cannot be undone.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+
+    // ❌ User cancelled
+    if (confirmed != true) return;
+
+    // ✅ Dispatch Bloc event
+    assignedSupplyBloc.add(AssignSupplyDate(selectedDate));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Supply assigned for $formattedDate")),
     );
   }
 
@@ -58,23 +101,15 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: today, // 👈 default today
+      initialDate: today,
       firstDate: DateTime(today.year - 1),
       lastDate: DateTime(today.year + 1),
     );
 
     if (selectedDate == null) return;
 
-    // 🔥 DISPATCH SUPPLY ACTION
-    // supplyCubit.assignSupplyForDate(selectedDate);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Supply assigned for ${selectedDate.toLocal().toString().split(' ')[0]}",
-        ),
-      ),
-    );
+    // 🔔 Ask confirmation
+    await _confirmAssignSupplyDate(selectedDate);
   }
 
   @override
@@ -166,7 +201,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             Icon(Icons.local_shipping, color: Colors.green),
                             SizedBox(width: 8),
                             Text(
-                              "Init Supply",
+                              "Supply options",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -202,25 +237,66 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         SizedBox(height: 10),
 
-                        ElevatedButton.icon(
-                          icon: const Icon(
-                            Icons.calendar_today,
-                            color: whiteColor,
-                          ),
-                          label: Text(
-                            style: TextStyle(color: whiteColor),
-                            isLocked
-                                ? "Supply Already Generated Today"
-                                : "Select Supply Date",
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
+                        BlocConsumer<AssignedSupplyBloc, AssignedSupplyState>(
+                          listener: (context, state) {
+                            if (state is AssignedSupplySuccess) {
+                              // context.read<SettingBloc>().add(CheckSupply());
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Supply generated successfully",
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (state is AssignedSupplyError) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(state.error)),
+                              );
+                            }
+                          },
+                          builder: (context, state) {
+                            final bool isLoading =
+                                state is AssignedSupplyLoading;
+
+                            return ElevatedButton.icon(
+                              icon:
+                                  isLoading
+                                      ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: whiteColor,
+                                        ),
+                                      )
+                                      : const Icon(
+                                        Icons.calendar_today,
+                                        color: whiteColor,
+                                      ),
+                              label: Text(
                                 isLocked
-                                    ? Colors.grey
-                                    : const Color(0xFF2E7D32),
-                            minimumSize: const Size(double.infinity, 48),
-                          ),
-                          onPressed: isLocked ? null : _openSupplyDatePicker,
+                                    ? "Supply Already Generated Today"
+                                    : isLoading
+                                    ? "Generating Supply..."
+                                    : "Select Supply Date",
+                                style: const TextStyle(color: whiteColor),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    isLocked || isLoading
+                                        ? Colors.grey
+                                        : const Color(0xFF2E7D32),
+                                minimumSize: const Size(double.infinity, 48),
+                              ),
+                              onPressed:
+                                  (isLocked || isLoading)
+                                      ? null
+                                      : _openSupplyDatePicker,
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 8),
@@ -296,87 +372,87 @@ class _DashboardPageState extends State<DashboardPage> {
             const SizedBox(height: 10),
 
             /// 🔹 SETTINGS TITLE
-            const Text(
-              "Settings",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            // const Text(
+            //   "Settings",
+            //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // ),
 
-            const SizedBox(height: 10),
+            // const SizedBox(height: 10),
 
-            /// 🔹 MILK PRICE CARD
-            BlocBuilder<SettingBloc, SettingState>(
-              builder: (context, state) {
-                print('check runtime state ${state.runtimeType}');
-                num? milkPrice;
+            // /// 🔹 MILK PRICE CARD
+            // BlocBuilder<SettingBloc, SettingState>(
+            //   builder: (context, state) {
+            //     print('check runtime state ${state.runtimeType}');
+            //     num? milkPrice;
 
-                if (state is SettingLoaded) {
-                  milkPrice = state.milkPrice;
-                }
+            //     if (state is SettingLoaded) {
+            //       milkPrice = state.milkPrice;
+            //     }
 
-                // sync controller safely
-                final textValue = milkPrice?.toString() ?? '0';
-                if (_priceController.text != textValue) {
-                  _priceController.text = textValue;
-                }
+            //     // sync controller safely
+            //     final textValue = milkPrice?.toString() ?? '0';
+            //     if (_priceController.text != textValue) {
+            //       _priceController.text = textValue;
+            //     }
 
-                return Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /// TITLE
-                        Row(
-                          children: const [
-                            Icon(Icons.currency_rupee, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text(
-                              "Milk Price",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+            //     return Card(
+            //       elevation: 4,
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(16),
+            //       ),
+            //       child: Padding(
+            //         padding: const EdgeInsets.all(16),
+            //         child: Column(
+            //           crossAxisAlignment: CrossAxisAlignment.start,
+            //           children: [
+            //             /// TITLE
+            //             Row(
+            //               children: const [
+            //                 Icon(Icons.currency_rupee, color: Colors.green),
+            //                 SizedBox(width: 8),
+            //                 Text(
+            //                   "Milk Price",
+            //                   style: TextStyle(
+            //                     fontSize: 16,
+            //                     fontWeight: FontWeight.bold,
+            //                   ),
+            //                 ),
+            //               ],
+            //             ),
 
-                        const SizedBox(height: 12),
+            //             const SizedBox(height: 12),
 
-                        /// INPUT
-                        TextFormField(
-                          controller: _priceController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: "Price per Liter",
-                            prefixText: "₹ ",
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (value) {
-                            final price = num.tryParse(value);
-                            if (price != null) {
-                              context.read<SettingBloc>().add(
-                                UpdateMilkPrice(price),
-                              );
-                            }
-                          },
-                        ),
+            //             /// INPUT
+            //             TextFormField(
+            //               controller: _priceController,
+            //               keyboardType: TextInputType.number,
+            //               decoration: const InputDecoration(
+            //                 labelText: "Price per Liter",
+            //                 prefixText: "₹ ",
+            //                 border: OutlineInputBorder(),
+            //               ),
+            //               onChanged: (value) {
+            //                 final price = num.tryParse(value);
+            //                 if (price != null) {
+            //                   context.read<SettingBloc>().add(
+            //                     UpdateMilkPrice(price),
+            //                   );
+            //                 }
+            //               },
+            //             ),
 
-                        const SizedBox(height: 8),
+            //             const SizedBox(height: 8),
 
-                        const Text(
-                          "This price is used for all supply calculations",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+            //             const Text(
+            //               "This price is used for all supply calculations",
+            //               style: TextStyle(fontSize: 12, color: Colors.grey),
+            //             ),
+            //           ],
+            //         ),
+            //       ),
+            //     );
+            //   },
+            // ),
           ],
         ),
       ),

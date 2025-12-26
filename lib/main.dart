@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:ap_ui/auth/screen/splash_screen.dart';
 import 'package:ap_ui/customer/bloc/history_bloc/customer_history_bloc.dart';
+import 'package:ap_ui/dashboard/bloc/assigned_supply_bloc.dart';
 import 'package:ap_ui/employee/bloc/employee_bloc.dart';
 import 'package:ap_ui/setting/bloc/setting_bloc.dart';
 import 'package:ap_ui/shared/theme.dart';
@@ -106,6 +107,8 @@ class _MilkAppState extends State<MilkApp> with WidgetsBindingObserver {
           BlocProvider(create: (context) => CustomerHistoryBloc()),
 
           BlocProvider(create: (context) => SettingBloc()),
+
+          BlocProvider(create: (context) => AssignedSupplyBloc()),
 
           /// 🧾 Vendor BLoC
           // BlocProvider(create: (context) => VendorBloc()),

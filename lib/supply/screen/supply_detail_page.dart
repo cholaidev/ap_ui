@@ -177,11 +177,11 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
             }
 
             double deliveredQty = 0;
-            double deliveredAmount = 0;
+            // double deliveredAmount = 0;
             int deliveredCount = 0;
 
             double undeliveredQty = 0;
-            double undeliveredAmount = 0;
+            // double undeliveredAmount = 0;
             int undeliveredCount = 0;
 
             for (final item in items) {
@@ -195,15 +195,15 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                 continue;
 
               final qty = (item['quantity'] ?? 0).toDouble();
-              final amount = (item['amount'] ?? 0).toDouble();
+              // final amount = (item['amount'] ?? 0).toDouble();
 
               if (item['is_delivered'] == 1) {
                 deliveredQty += qty;
-                deliveredAmount += amount;
+                // deliveredAmount += amount;
                 deliveredCount++;
               } else {
                 undeliveredQty += qty;
-                undeliveredAmount += amount;
+                // undeliveredAmount += amount;
                 undeliveredCount++;
               }
             }
@@ -220,19 +220,13 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      _info("Total Liters", "${s['total_quantity']} L"),
-                      _info("Total Amount", "₹ ${s['total_amount']}"),
-                    ],
-                  ),
                   const SizedBox(height: 5),
                   Row(
                     children: [
                       _metricCard(
                         "Delivered ($deliveredCount)",
                         "$deliveredQty L",
-                        "₹ $deliveredAmount",
+                        // "₹ $deliveredAmount",
                         Colors.green,
                         Icons.check_circle,
                       ),
@@ -240,7 +234,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                       _metricCard(
                         "Undelivered ($undeliveredCount)",
                         "$undeliveredQty L",
-                        "₹ $undeliveredAmount",
+                        // "₹ $undeliveredAmount",
                         Colors.red,
                         Icons.pending_actions,
                       ),
@@ -297,7 +291,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
   Widget _metricCard(
     String title,
     String qty,
-    String amount,
+    // String amount,
     Color color,
     IconData icon,
   ) {
@@ -317,7 +311,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
               ),
               const SizedBox(height: 8),
               Text(qty, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(amount, style: const TextStyle(color: Colors.grey)),
+              // Text(amount, style: const TextStyle(color: Colors.grey)),
             ],
           ),
         ),

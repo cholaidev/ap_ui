@@ -70,7 +70,7 @@ class _SupplyListPageState extends State<SupplyListPage> {
       final range = await showDateRangePicker(
         context: context,
         firstDate: DateTime(2020),
-        lastDate: DateTime.now(),
+        lastDate: DateTime(DateTime.now().year + 1),
       );
 
       if (range == null) return;
@@ -115,6 +115,7 @@ class _SupplyListPageState extends State<SupplyListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: BackButton(color: whiteColor),
         title: const Text("Supplies", style: TextStyle(color: whiteColor)),
         backgroundColor: const Color(0xFF2E7D32),
       ),
@@ -200,7 +201,7 @@ class _SupplyListPageState extends State<SupplyListPage> {
                     itemCount: supplies.length,
                     itemBuilder: (context, index) {
                       final s = supplies[index];
-
+                      print('check suplie $s');
                       return Card(
                         elevation: 2,
                         child: ListTile(
@@ -226,7 +227,7 @@ class _SupplyListPageState extends State<SupplyListPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text("🍼 ${s['total_quantity']} L"),
-                                Text("₹ ${s['total_amount']}"),
+                                Text("👤 ${s['items'].length}"),
                               ],
                             ),
                           ),
