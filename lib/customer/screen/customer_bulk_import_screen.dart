@@ -21,54 +21,13 @@ class _BulkImportPageState extends State<BulkImportPage> {
   String? _fileName;
   bool _loading = false;
 
-  void _showWarning(String message) {
-    setState(() {
-      _csvData = [];
-      _fileName = null;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.orange),
-    );
+  // ================= HELPERS =================
+  void _showSnack(String msg, {Color color = Colors.red}) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
-  // ================= CSV PICK =================
-  Future<void> _pickCSV() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-
-    if (result == null) return;
-
-    final file = File(result.files.single.path!);
-    final fileName = result.files.single.name;
-
-    // 🔴 CHECK FILE EXTENSION
-    if (!fileName.toLowerCase().endsWith('.csv')) {
-      _showWarning("Please select a valid CSV file");
-      return;
-    }
-
-    try {
-      final content = await file.readAsString();
-
-      // 🔴 TRY PARSING CSV
-      final csvTable = const CsvToListConverter().convert(content);
-
-      // 🔴 CHECK IF CSV HAS AT LEAST HEADER + 1 ROW
-      if (csvTable.length < 2) {
-        _showWarning("CSV file is empty or invalid");
-        return;
-      }
-
-      setState(() {
-        _csvData = csvTable;
-        _fileName = fileName;
-      });
-    } catch (e) {
-      _showWarning("Unable to read CSV file. Please check the format.");
-    }
-  }
-
-  // ================= VALIDATION HELPERS =================
   bool _isValidPhone(String phone) {
     final cleaned = phone.replaceAll(RegExp(r'\D'), '');
     return cleaned.length == 10;
@@ -81,14 +40,45 @@ class _BulkImportPageState extends State<BulkImportPage> {
 
   double? _parseQuantity(dynamic value) {
     try {
-      final qty = double.parse(value.toString());
-      return qty > 0 ? qty : null;
+      final q = double.parse(value.toString());
+      return q > 0 ? q : null;
     } catch (_) {
       return null;
     }
   }
 
-  // ================= IMPORT CSV =================
+  // ================= CSV PICK =================
+  Future<void> _pickCSV() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null) return;
+
+    final file = File(result.files.single.path!);
+    final fileName = result.files.single.name;
+
+    if (!fileName.toLowerCase().endsWith('.csv')) {
+      _showSnack("Please select a CSV file", color: Colors.orange);
+      return;
+    }
+
+    try {
+      final content = await file.readAsString();
+      final csv = const CsvToListConverter().convert(content);
+
+      if (csv.length < 2) {
+        _showSnack("CSV is empty or invalid", color: Colors.orange);
+        return;
+      }
+
+      setState(() {
+        _csvData = csv;
+        _fileName = fileName;
+      });
+    } catch (e) {
+      _showSnack("Failed to read CSV file");
+    }
+  }
+
+  // ================= IMPORT =================
   Future<void> _importCSV() async {
     if (_csvData.length < 2) return;
 
@@ -102,11 +92,12 @@ class _BulkImportPageState extends State<BulkImportPage> {
     for (int i = 0; i < rows.length; i++) {
       final row = rows[i];
 
-      final house = row[0].toString().trim();
-      final name = row[1].toString().trim();
-      final phone = row[2].toString().trim();
-      final milk = row[3].toString().trim();
-      final quantity = row.length > 4 ? row[4] : null;
+      final name = row[0].toString().trim();
+      final phone = row[1].toString().trim();
+      final house = row[2].toString().trim();
+      final location = row[3].toString().trim();
+      final milk = row[4].toString().trim();
+      final quantity = row.length > 5 ? row[5] : null;
 
       if (name.isEmpty) {
         errors.add("Row ${i + 2}: Name is empty");
@@ -114,25 +105,31 @@ class _BulkImportPageState extends State<BulkImportPage> {
       }
 
       if (!_isValidPhone(phone)) {
-        errors.add("Row ${i + 2}: Phone must be 10 digits");
+        errors.add("Row ${i + 2}: Invalid phone");
+        continue;
+      }
+
+      if (location.isEmpty) {
+        errors.add("Row ${i + 2}: Location missing");
         continue;
       }
 
       if (!_isValidMilk(milk)) {
-        errors.add("Row ${i + 2}: Milk must be Cow or Buffalo");
+        errors.add("Row ${i + 2}: Milk must be Cow/Buffalo");
         continue;
       }
 
       final qty = _parseQuantity(quantity);
       if (qty == null) {
-        errors.add("Row ${i + 2}: Quantity must be > 0");
+        errors.add("Row ${i + 2}: Quantity invalid");
         continue;
       }
 
       validCustomers.add({
-        "house": house,
         "name": name,
         "phone": phone.replaceAll(RegExp(r'\D'), ''),
+        "house": house,
+        "location": location,
         "milk": milk,
         "quantity": qty,
       });
@@ -140,40 +137,35 @@ class _BulkImportPageState extends State<BulkImportPage> {
 
     setState(() => _loading = false);
 
-    // ❌ No valid rows
     if (validCustomers.isEmpty) {
       _showErrorDialog(errors);
       return;
     }
 
-    // ⚠️ Some invalid rows → ask user
     if (errors.isNotEmpty) {
-      _showContinueDialog(errors: errors, validCustomers: validCustomers);
+      _showContinueDialog(errors, validCustomers);
       return;
     }
 
-    // ✅ All valid
-    _submitValidCustomers(validCustomers);
+    _submit(validCustomers);
   }
 
-  // ================= SUBMIT =================
-  void _submitValidCustomers(List<Map<String, dynamic>> customers) {
+  void _submit(List<Map<String, dynamic>> customers) {
     setState(() => _loading = true);
     context.read<CustomerBloc>().add(BulkCustomer(customers));
   }
 
-  // ================= ERROR DIALOG =================
+  // ================= DIALOGS =================
   void _showErrorDialog(List<String> errors) {
     showDialog(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text("CSV Validation Errors"),
+            title: const Text("CSV Errors"),
             content: SizedBox(
               width: double.maxFinite,
-              child: ListView.builder(
-                itemCount: errors.length,
-                itemBuilder: (_, i) => Text("• ${errors[i]}"),
+              child: ListView(
+                children: errors.map((e) => Text("• $e")).toList(),
               ),
             ),
             actions: [
@@ -186,43 +178,32 @@ class _BulkImportPageState extends State<BulkImportPage> {
     );
   }
 
-  // ================= CONTINUE DIALOG =================
-  void _showContinueDialog({
-    required List<String> errors,
-    required List<Map<String, dynamic>> validCustomers,
-  }) {
+  void _showContinueDialog(
+    List<String> errors,
+    List<Map<String, dynamic>> validCustomers,
+  ) {
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder:
           (_) => AlertDialog(
-            title: const Text("Validation Issues Found"),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Valid customers: ${validCustomers.length}"),
-                  Text(
-                    "Invalid rows: ${errors.length}",
-                    style: const TextStyle(color: Colors.red),
+            title: const Text("Some rows invalid"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Valid: ${validCustomers.length}"),
+                Text(
+                  "Invalid: ${errors.length}",
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 120,
+                  child: ListView(
+                    children: errors.map((e) => Text("• $e")).toList(),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Errors:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    height: 150,
-                    child: ListView.builder(
-                      itemCount: errors.length,
-                      itemBuilder: (_, i) => Text("• ${errors[i]}"),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
             actions: [
               TextButton(
@@ -232,9 +213,9 @@ class _BulkImportPageState extends State<BulkImportPage> {
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  _submitValidCustomers(validCustomers);
+                  _submit(validCustomers);
                 },
-                child: const Text("Continue with Valid"),
+                child: const Text("Continue"),
               ),
             ],
           ),
@@ -248,37 +229,16 @@ class _BulkImportPageState extends State<BulkImportPage> {
       listener: (context, state) {
         if (state is BulkCustomerSuccessState) {
           setState(() => _loading = false);
-
           showDialog(
             context: context,
             builder:
                 (_) => AlertDialog(
-                  title: const Text("Bulk Import Completed"),
+                  title: const Text("Import Complete"),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text("✅ Inserted: ${state.inserted}"),
                       Text("⏭ Skipped: ${state.skipped}"),
-                      if (state.skippedPhones.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Skipped Phone Numbers:",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(
-                          height: 120,
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children:
-                                  state.skippedPhones
-                                      .map<Widget>((p) => Text("• $p"))
-                                      .toList(),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   actions: [
@@ -297,33 +257,22 @@ class _BulkImportPageState extends State<BulkImportPage> {
 
         if (state is CustomerError) {
           setState(() => _loading = false);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.error)));
+          _showSnack(state.error);
         }
       },
       child: Scaffold(
         appBar: AppBar(
-          leading:
-              _loading
-                  ? null
-                  : BackButton(
-                    color: whiteColor,
-                    onPressed: () {
-                      context.read<CustomerBloc>().add(FetchCustomers());
-                      Navigator.pop(context);
-                    },
-                  ),
           title: const Text(
             "Bulk Import Customers",
             style: TextStyle(color: whiteColor),
           ),
           backgroundColor: const Color(0xFF2E7D32),
         ),
+
         body: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -332,6 +281,7 @@ class _BulkImportPageState extends State<BulkImportPage> {
                     label: const Text("Select CSV File"),
                     onPressed: _loading ? null : _pickCSV,
                   ),
+
                   if (_fileName != null) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -339,37 +289,34 @@ class _BulkImportPageState extends State<BulkImportPage> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
+
                   const SizedBox(height: 16),
+
                   if (_csvData.isNotEmpty)
-                    SizedBox(
-                      height: 350,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns:
-                              _csvData.first
-                                  .map(
-                                    (e) =>
-                                        DataColumn(label: Text(e.toString())),
-                                  )
-                                  .toList(),
-                          rows:
-                              _csvData
-                                  .skip(1)
-                                  .map(
-                                    (row) => DataRow(
-                                      cells:
-                                          row
-                                              .map(
-                                                (cell) => DataCell(
-                                                  Text(cell.toString()),
-                                                ),
-                                              )
-                                              .toList(),
-                                    ),
-                                  )
-                                  .toList(),
-                        ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns:
+                            _csvData.first
+                                .map(
+                                  (e) => DataColumn(label: Text(e.toString())),
+                                )
+                                .toList(),
+                        rows:
+                            _csvData
+                                .skip(1)
+                                .map(
+                                  (row) => DataRow(
+                                    cells:
+                                        row
+                                            .map(
+                                              (c) =>
+                                                  DataCell(Text(c.toString())),
+                                            )
+                                            .toList(),
+                                  ),
+                                )
+                                .toList(),
                       ),
                     )
                   else
@@ -377,35 +324,34 @@ class _BulkImportPageState extends State<BulkImportPage> {
                       height: 200,
                       child: Center(child: Text("No file selected")),
                     ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _csvData.isEmpty || _loading ? null : _importCSV,
-                    child: const Text("Import Customers"),
-                  ),
                 ],
               ),
             ),
+
             if (_loading)
               Positioned.fill(
                 child: Container(
                   color: Colors.black.withOpacity(0.35),
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 12),
-                        Text(
-                          "Validating & syncing...",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
           ],
         ),
+
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+
+        floatingActionButton:
+            _csvData.isEmpty
+                ? null
+                : FloatingActionButton.extended(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  icon: const Icon(Icons.cloud_upload, color: Colors.white),
+                  label: const Text(
+                    "IMPORT CUSTOMERS",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: _loading ? null : _importCSV,
+                ),
       ),
     );
   }
