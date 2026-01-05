@@ -61,6 +61,14 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
     return salary - given;
   }
 
+  Future<bool> _onPhoneBackPressed() async {
+    debugPrint('phone back pressed');
+
+    context.read<EmployeeBloc>().add(LoadEmployees());
+
+    return true; // allow navigation
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<EmployeeBloc, EmployeeState>(
@@ -82,129 +90,139 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
           Navigator.pop(context);
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF2E7D32),
-          leading: BackButton(
-            color: whiteColor,
-            onPressed: () {
-              print('back prevented');
-              context.read<EmployeeBloc>().add(LoadEmployees());
-              Navigator.pop(context);
+      child: PopScope(
+        canPop: true,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            _onPhoneBackPressed();
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF2E7D32),
+            leading: BackButton(
+              color: whiteColor,
+              onPressed: () {
+                print('back prevented');
+                context.read<EmployeeBloc>().add(LoadEmployees());
+                Navigator.pop(context);
+              },
+            ),
+            title: const Text(
+              "Employee Details",
+              style: TextStyle(color: whiteColor),
+            ),
+            actions: [
+              PopupMenuButton<String>(
+                iconColor: whiteColor,
+                onSelected: (value) {
+                  if (value == "edit") {
+                    final emp =
+                        (context.read<EmployeeBloc>().state
+                                as EmployeeDetailLoaded)
+                            .employee;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EmployeeFormPage(editEmployee: emp),
+                      ),
+                    );
+                  } else if (value == "delete") {
+                    _confirmDelete(widget.id);
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      const PopupMenuItem(
+                        value: "edit",
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 18),
+                            SizedBox(width: 8),
+                            Text("Edit"),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: "delete",
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 18, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text("Delete", style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+              ),
+            ],
+          ),
+
+          body: BlocBuilder<EmployeeBloc, EmployeeState>(
+            builder: (context, state) {
+              print('check runtime state ${state.runtimeType}');
+              if (state is EmployeeLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is EmployeeDetailLoaded) {
+                final emp = state.employee;
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _info("Name", emp["name"]),
+                          _info("Phone", emp["phone"] ?? "N/A"),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      Row(
+                        children: [
+                          _info("Email", emp["email"] ?? "N/A"),
+                          _info("Salary", "₹${emp['salary'] ?? 0}"),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      Row(
+                        children: [
+                          _info("Given Money", "₹${emp['given_money'] ?? 0}"),
+
+                          _info("Balance", "₹${_getBalance(emp)}"),
+                        ],
+                      ),
+
+                      const SizedBox(height: 25),
+                      const Divider(),
+
+                      const Text(
+                        "Payment Transactions",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      const Text("Payments list code coming soon..."),
+
+                      const SizedBox(height: 50),
+                    ],
+                  ),
+                );
+              }
+
+              return const Center(
+                child: Text("Unable to load employee details"),
+              );
             },
           ),
-          title: const Text(
-            "Employee Details",
-            style: TextStyle(color: whiteColor),
-          ),
-          actions: [
-            PopupMenuButton<String>(
-              iconColor: whiteColor,
-              onSelected: (value) {
-                if (value == "edit") {
-                  final emp =
-                      (context.read<EmployeeBloc>().state
-                              as EmployeeDetailLoaded)
-                          .employee;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EmployeeFormPage(editEmployee: emp),
-                    ),
-                  );
-                } else if (value == "delete") {
-                  _confirmDelete(widget.id);
-                }
-              },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
-                      value: "edit",
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 18),
-                          SizedBox(width: 8),
-                          Text("Edit"),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: "delete",
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 18, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text("Delete", style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-            ),
-          ],
-        ),
-
-        body: BlocBuilder<EmployeeBloc, EmployeeState>(
-          builder: (context, state) {
-            print('check runtime state ${state.runtimeType}');
-            if (state is EmployeeLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is EmployeeDetailLoaded) {
-              final emp = state.employee;
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _info("Name", emp["name"]),
-                        _info("Phone", emp["phone"] ?? "N/A"),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    Row(
-                      children: [
-                        _info("Email", emp["email"] ?? "N/A"),
-                        _info("Salary", "₹${emp['salary'] ?? 0}"),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    Row(
-                      children: [
-                        _info("Given Money", "₹${emp['given_money'] ?? 0}"),
-
-                        _info("Balance", "₹${_getBalance(emp)}"),
-                      ],
-                    ),
-
-                    const SizedBox(height: 25),
-                    const Divider(),
-
-                    const Text(
-                      "Payment Transactions",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    const Text("Payments list code coming soon..."),
-
-                    const SizedBox(height: 50),
-                  ],
-                ),
-              );
-            }
-
-            return const Center(child: Text("Unable to load employee details"));
-          },
         ),
       ),
     );

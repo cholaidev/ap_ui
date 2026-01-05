@@ -17,24 +17,62 @@ class EmployeeSelectListPage extends StatefulWidget {
 
 class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
   Map? selected;
-  SupplyCubitCubit supplyCubit = SupplyCubitCubit();
+  late SupplyCubitCubit supplyCubit;
+
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<dynamic> _allEmployees = [];
+  List<dynamic> _filteredEmployees = [];
 
   @override
   void initState() {
     super.initState();
-    print('edit employee ${widget.selectedEmployee}');
+
     if (widget.selectedEmployee != null) {
       selected = widget.selectedEmployee;
     }
 
     context.read<EmployeeBloc>().add(LoadEmployees());
-    supplyCubit = BlocProvider.of<SupplyCubitCubit>(context);
+    supplyCubit = context.read<SupplyCubitCubit>();
+
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  /// 🔍 SEARCH (NAME + PHONE)
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+
+    setState(() {
+      _filteredEmployees =
+          _allEmployees.where((e) {
+            return (e['name'] ?? '').toLowerCase().contains(query) ||
+                (e['phone'] ?? '').toString().contains(query);
+          }).toList();
+    });
+  }
+
+  void _startSearch() {
+    setState(() => _isSearching = true);
+  }
+
+  void _stopSearch() {
+    setState(() {
+      _isSearching = false;
+      _searchController.clear();
+      _filteredEmployees = _allEmployees;
+    });
   }
 
   void _onDone() {
-    print('selected employee $selected');
     supplyCubit.setEmployee(selected);
     Navigator.pop(context, selected);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -42,12 +80,54 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(color: whiteColor),
-        title: const Text(
-          "Select Employee",
-          style: TextStyle(color: whiteColor),
-        ),
         backgroundColor: const Color(0xFF2E7D32),
+
+        /// 🔍 TITLE / SEARCH
+        title:
+            _isSearching
+                ? Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.black),
+                    cursorColor: Colors.black,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: const InputDecoration(
+                      hintText: "Search name or phone...",
+                      hintStyle: TextStyle(color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+
+                      // ❌ No borders
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                )
+                : const Text(
+                  "Select Employee",
+                  style: TextStyle(color: whiteColor),
+                ),
+
         actions: [
+          /// SEARCH ICON
+          IconButton(
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: whiteColor,
+            ),
+            onPressed: () => _isSearching ? _stopSearch() : _startSearch(),
+          ),
+
+          /// DONE
           TextButton(
             onPressed: selected == null ? null : _onDone,
             child: const Text(
@@ -65,37 +145,35 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
           }
 
           if (state is EmployeeLoaded) {
+            _allEmployees = state.employees;
+            if (!_isSearching) {
+              _filteredEmployees = _allEmployees;
+            }
+
+            final employees = _filteredEmployees;
+
             return ListView.builder(
               padding: const EdgeInsets.all(8),
-              itemCount: state.employees.length,
+              itemCount: employees.length,
               itemBuilder: (_, index) {
-                final emp = state.employees[index];
-                final isSelected = selected?['id'] == emp['id'];
+                final emp = employees[index];
 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 6),
                   child: ListTile(
                     onTap: () {
                       setState(() {
-                        if (selected?['id'] == emp['id']) {
-                          selected = null;
-                        } else {
-                          selected = emp;
-                        }
+                        selected = selected?['id'] == emp['id'] ? null : emp;
                       });
                     },
 
-                    /// RADIO FOR SINGLE SELECT
+                    /// RADIO (SINGLE SELECT)
                     leading: Radio<int>(
                       value: emp['id'],
                       groupValue: selected?['id'],
                       onChanged: (_) {
                         setState(() {
-                          if (selected?['id'] == emp['id']) {
-                            selected = null;
-                          } else {
-                            selected = emp;
-                          }
+                          selected = selected?['id'] == emp['id'] ? null : emp;
                         });
                       },
                     ),
@@ -112,10 +190,7 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
                         ),
                         Text(
                           "₹${emp['salary'] ?? 0}",
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),

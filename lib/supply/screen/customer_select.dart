@@ -20,6 +20,12 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
   final List<Map<String, dynamic>> selectedCustomers = [];
   late SupplyCubitCubit supplyCubit;
 
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<dynamic> _allCustomers = [];
+  List<dynamic> _filteredCustomers = [];
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +36,35 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
 
     context.read<CustomerBloc>().add(FetchCustomers());
     supplyCubit = context.read<SupplyCubitCubit>();
+
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  /// 🔍 SEARCH (NAME / PHONE / LOCATION / HOUSE NAME)
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+
+    setState(() {
+      _filteredCustomers =
+          _allCustomers.where((c) {
+            return (c['name'] ?? '').toLowerCase().contains(query) ||
+                (c['phone'] ?? '').toString().contains(query) ||
+                (c['location'] ?? '').toLowerCase().contains(query) ||
+                (c['house_name'] ?? '').toLowerCase().contains(query);
+          }).toList();
+    });
+  }
+
+  void _startSearch() {
+    setState(() => _isSearching = true);
+  }
+
+  void _stopSearch() {
+    setState(() {
+      _isSearching = false;
+      _searchController.clear();
+      _filteredCustomers = _allCustomers;
+    });
   }
 
   bool isSelected(int id) => selectedCustomers.any((e) => e['id'] == id);
@@ -74,16 +109,59 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(color: whiteColor),
-        title: const Text(
-          "Select Customers",
-          style: TextStyle(color: whiteColor),
-        ),
         backgroundColor: const Color(0xFF2E7D32),
+
+        /// 🔍 TITLE / SEARCH
+        title:
+            _isSearching
+                ? Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.black),
+                    cursorColor: Colors.black,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: const InputDecoration(
+                      hintText: "Search name, phone, house, location...",
+                      hintStyle: TextStyle(color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                )
+                : const Text(
+                  "Select Customers",
+                  style: TextStyle(color: whiteColor),
+                ),
+
         actions: [
+          IconButton(
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: whiteColor,
+            ),
+            onPressed: () => _isSearching ? _stopSearch() : _startSearch(),
+          ),
+
           TextButton(
             onPressed: selectedCustomers.isEmpty ? null : _onDone,
             child: const Text(
@@ -101,11 +179,18 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
           }
 
           if (state is CustomerLoaded) {
+            _allCustomers = state.customers;
+            if (!_isSearching) {
+              _filteredCustomers = _allCustomers;
+            }
+
+            final customers = _filteredCustomers;
+
             return ListView.builder(
               padding: const EdgeInsets.all(8),
-              itemCount: state.customers.length,
+              itemCount: customers.length,
               itemBuilder: (_, index) {
-                final c = state.customers[index];
+                final c = customers[index];
                 final selected = isSelected(c['id']);
                 final sc = selectedCustomer(c['id']);
 
@@ -116,7 +201,6 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                       ListTile(
                         onTap: () => toggleCustomer(c),
 
-                        /// MULTI SELECT
                         leading: Checkbox(
                           value: selected,
                           onChanged: (_) => toggleCustomer(c),
@@ -130,27 +214,37 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                           ),
                         ),
 
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text("📞 ${c['phone'] ?? '-'}"),
-                              Icon(
-                                c['is_active'] == 1
-                                    ? Icons.check_circle
-                                    : Icons.cancel,
-                                color:
-                                    c['is_active'] == 1
-                                        ? Colors.green
-                                        : Colors.red,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              "🏠 ${c['house_name'] ?? ''}",
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            const SizedBox(height: 2),
+                            Text("📞 ${c['phone'] ?? '-'}"),
+                            const SizedBox(height: 2),
+                            Text(
+                              "📍 ${c['location'] ?? ''}",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
+
+                        trailing: Icon(
+                          c['is_active'] == 1
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          color:
+                              c['is_active'] == 1 ? Colors.green : Colors.red,
                         ),
                       ),
 
-                      /// QUANTITY (ONLY IF SELECTED)
+                      /// QUANTITY FIELD
                       if (selected)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(56, 0, 16, 12),

@@ -15,10 +15,53 @@ class EmployeeListPage extends StatefulWidget {
 }
 
 class _EmployeeListPageState extends State<EmployeeListPage> {
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<dynamic> _allEmployees = [];
+  List<dynamic> _filteredEmployees = [];
+
   @override
   void initState() {
     super.initState();
     context.read<EmployeeBloc>().add(LoadEmployees());
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  /// 🔄 Pull to refresh
+  Future<void> _onRefresh() async {
+    context.read<EmployeeBloc>().add(LoadEmployees());
+  }
+
+  /// 🔍 Search by NAME + PHONE
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+
+    setState(() {
+      _filteredEmployees =
+          _allEmployees.where((e) {
+            return (e['name'] ?? '').toLowerCase().contains(query) ||
+                (e['phone'] ?? '').toString().contains(query);
+          }).toList();
+    });
+  }
+
+  void _startSearch() {
+    setState(() => _isSearching = true);
+  }
+
+  void _stopSearch() {
+    setState(() {
+      _isSearching = false;
+      _searchController.clear();
+      _filteredEmployees = _allEmployees;
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -26,8 +69,49 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(color: whiteColor),
-        title: const Text("Employees", style: TextStyle(color: whiteColor)),
         backgroundColor: const Color(0xFF2E7D32),
+
+        /// 🔍 TITLE / SEARCH
+        title:
+            _isSearching
+                ? Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.black),
+                    cursorColor: Colors.black,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: const InputDecoration(
+                      hintText: "Search name or phone...",
+                      hintStyle: TextStyle(color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+
+                      // ❌ No borders
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                )
+                : const Text("Employees", style: TextStyle(color: whiteColor)),
+
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: whiteColor,
+            ),
+            onPressed: () => _isSearching ? _stopSearch() : _startSearch(),
+          ),
+        ],
       ),
 
       body: BlocBuilder<EmployeeBloc, EmployeeState>(
@@ -37,17 +121,22 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
           }
 
           if (state is EmployeeLoaded) {
-            final employees = state.employees;
+            _allEmployees = state.employees;
+            if (!_isSearching) {
+              _filteredEmployees = _allEmployees;
+            }
+
+            final employees = _filteredEmployees;
 
             final totalEmployees = employees.length;
-            num totalSalary = employees.fold(0, (sum, e) {
-              final salary = num.tryParse(e["salary"].toString()) ?? 0;
-              return sum + salary;
-            });
+            final totalSalary = employees.fold<num>(
+              0,
+              (sum, e) => sum + (num.tryParse(e['salary'].toString()) ?? 0),
+            );
 
             return Column(
               children: [
-                /// 🔥 METRICS CARD
+                /// METRICS
                 Container(
                   padding: const EdgeInsets.all(12),
                   color: const Color(0xFF2E7D32),
@@ -58,9 +147,8 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
                         children: [
                           const Text(
                             "Total Employees",
-                            style: TextStyle(color: whiteColor, fontSize: 14),
+                            style: TextStyle(color: whiteColor),
                           ),
-                          const SizedBox(height: 5),
                           Text(
                             "$totalEmployees",
                             style: const TextStyle(
@@ -75,9 +163,8 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
                         children: [
                           const Text(
                             "Total Salary",
-                            style: TextStyle(color: whiteColor, fontSize: 14),
+                            style: TextStyle(color: whiteColor),
                           ),
-                          const SizedBox(height: 5),
                           Text(
                             "₹$totalSalary",
                             style: const TextStyle(
@@ -92,91 +179,91 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
                   ),
                 ),
 
-                /// LIST VIEW
+                /// LIST + PULL TO REFRESH
                 Expanded(
-                  child:
-                      employees.isEmpty
-                          ? const Center(
-                            child: Text(
-                              "No employees found",
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          )
-                          : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
-                            itemCount: employees.length,
-                            itemBuilder: (context, index) {
-                              final emp = employees[index];
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: const Color(0xFF2E7D32),
+                    child:
+                        employees.isEmpty
+                            ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                SizedBox(height: 200),
+                                Center(child: Text("No employees found")),
+                              ],
+                            )
+                            : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                              ),
+                              itemCount: employees.length,
+                              itemBuilder: (context, index) {
+                                final emp = employees[index];
 
-                              return Card(
-                                elevation: 1,
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                child: ListTile(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (_) => EmployeeDetailPage(
-                                              id: emp['id'],
-                                            ),
-                                      ),
-                                    );
-                                  },
-
-                                  title: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      /// NAME
-                                      Text(
-                                        emp['name'] ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-
-                                      /// Salary
-                                      Text(
-                                        "₹${emp['salary'] ?? 0}",
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
+                                return Card(
+                                  elevation: 1,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
                                   ),
+                                  child: ListTile(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (_) => EmployeeDetailPage(
+                                                id: emp['id'],
+                                              ),
+                                        ),
+                                      );
+                                    },
 
-                                  subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Row(
+                                    title: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        /// PHONE
                                         Text(
-                                          "📞 ${emp['phone']}",
-                                          style: const TextStyle(fontSize: 14),
+                                          emp['name'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-
-                                        /// ACTIVE STATUS
-                                        Icon(
-                                          emp['is_active'] == 1
-                                              ? Icons.check_circle
-                                              : Icons.cancel,
-                                          color:
-                                              emp['is_active'] == 1
-                                                  ? Colors.green
-                                                  : Colors.red,
+                                        Text(
+                                          "₹${emp['salary'] ?? 0}",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ),
+
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text("📞 ${emp['phone']}"),
+                                          Icon(
+                                            emp['is_active'] == 1
+                                                ? Icons.check_circle
+                                                : Icons.cancel,
+                                            color:
+                                                emp['is_active'] == 1
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
+                  ),
                 ),
               ],
             );

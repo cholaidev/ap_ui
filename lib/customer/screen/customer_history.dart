@@ -3,14 +3,10 @@ import 'package:ap_ui/shared/resolve_datefilter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ap_ui/shared/date_filtered_helper.dart';
-import '../../shared/constant/colors.dart';
-
-import '../bloc/customer_bloc.dart';
-import '../bloc/customer_event.dart';
-import '../bloc/customer_state.dart';
 
 class CustomerDeliveryHistoryWidget extends StatefulWidget {
   final int customerId;
+
   const CustomerDeliveryHistoryWidget({super.key, required this.customerId});
 
   @override
@@ -29,9 +25,10 @@ class _CustomerDeliveryHistoryWidgetState
     _load();
   }
 
-  /// 🔹 Load history from API
+  /// 🔹 LOAD HISTORY
   void _load() {
     final range = resolveDateRange(_filter, _customRange);
+
     context.read<CustomerHistoryBloc>().add(
       GetCustomerDeliveryHistoryEvent(
         customerId: widget.customerId,
@@ -41,6 +38,7 @@ class _CustomerDeliveryHistoryWidgetState
     );
   }
 
+  /// 🔹 FILTER CHANGE
   Future<void> _changeFilter(DateFilterTypes value) async {
     if (value == DateFilterTypes.custom) {
       final range = await showDateRangePicker(
@@ -70,7 +68,7 @@ class _CustomerDeliveryHistoryWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        /// 🔽 FILTER HEADER
+        /// 🔽 HEADER + FILTER
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -106,7 +104,7 @@ class _CustomerDeliveryHistoryWidgetState
 
         const SizedBox(height: 8),
 
-        /// 📊 DATA + LIST
+        /// 📊 DATA
         BlocBuilder<CustomerHistoryBloc, CustomerHistoryState>(
           builder: (context, state) {
             if (state is CustomerDeliveryLoading) {
@@ -116,39 +114,62 @@ class _CustomerDeliveryHistoryWidgetState
             if (state is CustomerDeliveryHistory) {
               final history = state.history;
 
-              /// 🔢 METRICS
-              double totalQty = 0;
-              double totalAmount = 0;
+              /// 🔹 SPLIT DATA
+              final delivered =
+                  history.where((h) => h['is_delivered'] == 1).toList();
+              final undelivered =
+                  history.where((h) => h['is_delivered'] == 0).toList();
 
-              for (final h in history) {
-                totalQty += (h['quantity'] ?? 0).toDouble();
-                totalAmount += (h['amount'] ?? 0).toDouble();
-              }
+              /// 🔹 QUANTITIES
+              final double deliveredQty = delivered.fold<double>(
+                0,
+                (s, h) => s + (h['quantity'] ?? 0).toDouble(),
+              );
+
+              final double undeliveredQty = undelivered.fold<double>(
+                0,
+                (s, h) => s + (h['quantity'] ?? 0).toDouble(),
+              );
+
+              /// 🔹 COUNTS
+              final int totalDelivered = delivered.length;
+              final int totalUndelivered = undelivered.length;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// 🔥 METRIC CARDS
+                  /// 🔥 METRICS
                   Row(
                     children: [
                       _metricCard(
-                        "Delivered",
-                        "${history.length}",
+                        "Total Delivered",
+                        totalDelivered.toString(),
+                        Icons.check_circle,
+                        Colors.green,
+                      ),
+                      const SizedBox(width: 8),
+                      _metricCard(
+                        "Total Undelivered",
+                        totalUndelivered.toString(),
+                        Icons.cancel,
+                        Colors.red,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _metricCard(
+                        "Delivered Quantity",
+                        "$deliveredQty L",
                         Icons.local_shipping,
                         Colors.green,
                       ),
                       const SizedBox(width: 8),
                       _metricCard(
-                        "Total Qty",
-                        "$totalQty L",
+                        "Undelivered Quantity",
+                        "$undeliveredQty L",
                         Icons.water_drop,
-                        Colors.blue,
-                      ),
-                      const SizedBox(width: 8),
-                      _metricCard(
-                        "Amount",
-                        "₹ $totalAmount",
-                        Icons.currency_rupee,
                         Colors.orange,
                       ),
                     ],
@@ -158,31 +179,42 @@ class _CustomerDeliveryHistoryWidgetState
 
                   if (history.isEmpty)
                     const Text(
-                      "No deliveries found",
+                      "No delivery history found",
                       style: TextStyle(color: Colors.grey),
                     ),
 
-                  /// 📜 DELIVERY LIST
+                  /// 📜 HISTORY LIST
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: history.length,
                     itemBuilder: (_, i) {
                       final h = history[i];
+                      final bool deliveredFlag = h['is_delivered'] == 1;
+
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         child: ListTile(
-                          leading: const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
+                          leading: Icon(
+                            deliveredFlag ? Icons.check_circle : Icons.cancel,
+                            color: deliveredFlag ? Colors.green : Colors.red,
                           ),
                           title: Text(
-                            "${h['quantity']} L • ₹ ${h['amount']}",
+                            "${h['quantity']} L",
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
-                            "Delivered on ${_formatDate(h['created_at'])}",
+                            deliveredFlag
+                                ? "Delivered on ${_formatDate(h['updated_at'])}"
+                                : "Pending (Supply: ${_formatDate(h['created_at'])})",
+                          ),
+                          trailing: Text(
+                            deliveredFlag ? "Delivered" : "Pending",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: deliveredFlag ? Colors.green : Colors.red,
+                            ),
                           ),
                         ),
                       );
@@ -207,26 +239,24 @@ class _CustomerDeliveryHistoryWidgetState
   Widget _metricCard(String title, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        child: Padding(
-          padding: const EdgeInsets.all(5),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
+            ),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
         ),
       ),
     );

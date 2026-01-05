@@ -57,6 +57,16 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
     );
   }
 
+  Future<bool> _onPhoneBackPressed() async {
+    debugPrint('phone back pressed');
+
+    context.read<SupplyBloc>().add(
+      LoadSupplies(is_from_assigned: widget.is_from_assigned),
+    );
+
+    return true; // allow navigation
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<SupplyBloc, SupplyState>(
@@ -95,181 +105,192 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
           );
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: BackButton(
-            color: whiteColor,
-            onPressed: () {
-              print('back prevented');
-              context.read<SupplyBloc>().add(
-                LoadSupplies(is_from_assigned: widget.is_from_assigned),
-              );
-              Navigator.pop(context);
-            },
-          ),
-          title: const Text(
-            "Supply Details",
-            style: TextStyle(color: whiteColor),
-          ),
-          backgroundColor: const Color(0xFF2E7D32),
-          actions: [
-            PopupMenuButton<String>(
-              iconColor: whiteColor,
-              onSelected: (value) {
-                final state = context.read<SupplyBloc>().state;
-                print('state check $state');
-                if (state is! SupplyDetailLoaded) return;
-
-                if (value == "edit") {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (_) => SupplyFormPage(
-                            editSupply: state.supply,
-                            is_from_assigned: widget.is_from_assigned,
-                          ),
-                    ),
-                  );
-                } else if (value == "delete") {
-                  _confirmDelete(widget.id);
-                }
+      child: PopScope(
+        canPop: true,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            _onPhoneBackPressed();
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            leading: BackButton(
+              color: whiteColor,
+              onPressed: () {
+                print('back prevented');
+                context.read<SupplyBloc>().add(
+                  LoadSupplies(is_from_assigned: widget.is_from_assigned),
+                );
+                Navigator.pop(context);
               },
-              itemBuilder:
-                  (_) => const [
-                    PopupMenuItem(value: "edit", child: Text("Edit")),
-                    PopupMenuItem(
-                      value: "delete",
-                      child: Text(
-                        "Delete",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
             ),
-          ],
-        ),
-        body: BlocBuilder<SupplyBloc, SupplyState>(
-          builder: (context, state) {
-            if (state is SupplyLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            title: const Text(
+              "Supply Details",
+              style: TextStyle(color: whiteColor),
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+            actions: [
+              PopupMenuButton<String>(
+                iconColor: whiteColor,
+                onSelected: (value) {
+                  final state = context.read<SupplyBloc>().state;
+                  print('state check $state');
+                  if (state is! SupplyDetailLoaded) return;
 
-            if (state is! SupplyDetailLoaded) {
-              return const Center(child: Text("Unable to load supply"));
-            }
-
-            final s = state.supply;
-            final List items = s['items'] ?? [];
-
-            /// ✅ PARSE SUPPLY DATE (YYYY-MM-DD)
-            final supplyDate = DateTime.parse(s['supply_date']);
-
-            /// ✅ TODAY RANGE
-            final now = DateTime.now();
-            final todayStart = DateTime(now.year, now.month, now.day);
-            final todayEnd = todayStart.add(const Duration(days: 1));
-
-            /// ❌ NOT TODAY → NO DATA
-            if (supplyDate.isBefore(todayStart) ||
-                supplyDate.isAfter(todayEnd)) {
-              return const Center(child: Text("No supply for today"));
-            }
-
-            double deliveredQty = 0;
-            // double deliveredAmount = 0;
-            int deliveredCount = 0;
-
-            double undeliveredQty = 0;
-            // double undeliveredAmount = 0;
-            int undeliveredCount = 0;
-
-            for (final item in items) {
-              final date = DateTime.parse(item['created_at']);
-
-              if (!DateFilterHelper.isInRange(
-                date: date,
-                filter: _filter,
-                customRange: _customRange,
-              ))
-                continue;
-
-              final qty = (item['quantity'] ?? 0).toDouble();
-              // final amount = (item['amount'] ?? 0).toDouble();
-
-              if (item['is_delivered'] == 1) {
-                deliveredQty += qty;
-                // deliveredAmount += amount;
-                deliveredCount++;
-              } else {
-                undeliveredQty += qty;
-                // undeliveredAmount += amount;
-                undeliveredCount++;
-              }
-            }
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _info("Employee", s['employee']['name']),
-                      _info("Phone", s['employee']['phone'] ?? "N/A"),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      _metricCard(
-                        "Delivered ($deliveredCount)",
-                        "$deliveredQty L",
-                        // "₹ $deliveredAmount",
-                        Colors.green,
-                        Icons.check_circle,
-                      ),
-                      const SizedBox(width: 2),
-                      _metricCard(
-                        "Undelivered ($undeliveredCount)",
-                        "$undeliveredQty L",
-                        // "₹ $undeliveredAmount",
-                        Colors.red,
-                        Icons.pending_actions,
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const Text(
-                    "Supply Items  (today)",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  ...items.map<Widget>((i) {
-                    final customerName =
-                        i['customer']?['name'] ??
-                        'Customer #${i['customer_id']}';
-
-                    return Card(
-                      child: ListTile(
-                        title: Text(customerName),
-                        subtitle: Text("${i['milk']} • ${i['quantity']} L"),
-                        trailing: Text(
-                          i['is_delivered'] == 1 ? "Delivered" : "Pending",
-                          style: TextStyle(
-                            color:
-                                i['is_delivered'] == 1
-                                    ? Colors.green
-                                    : Colors.red,
-                          ),
-                        ),
+                  if (value == "edit") {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => SupplyFormPage(
+                              editSupply: state.supply,
+                              is_from_assigned: widget.is_from_assigned,
+                            ),
                       ),
                     );
-                  }),
-                ],
+                  } else if (value == "delete") {
+                    _confirmDelete(widget.id);
+                  }
+                },
+                itemBuilder:
+                    (_) => const [
+                      PopupMenuItem(value: "edit", child: Text("Edit")),
+                      PopupMenuItem(
+                        value: "delete",
+                        child: Text(
+                          "Delete",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
               ),
-            );
-          },
+            ],
+          ),
+          body: BlocBuilder<SupplyBloc, SupplyState>(
+            builder: (context, state) {
+              if (state is SupplyLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is! SupplyDetailLoaded) {
+                return const Center(child: Text("Unable to load supply"));
+              }
+
+              final s = state.supply;
+              final List items = s['items'] ?? [];
+
+              /// ✅ PARSE SUPPLY DATE (YYYY-MM-DD)
+              final supplyDate = DateTime.parse(s['supply_date']);
+
+              /// ✅ TODAY RANGE
+              final now = DateTime.now();
+              final todayStart = DateTime(now.year, now.month, now.day);
+              final todayEnd = todayStart.add(const Duration(days: 1));
+
+              /// ❌ NOT TODAY → NO DATA
+              if (supplyDate.isBefore(todayStart) ||
+                  supplyDate.isAfter(todayEnd)) {
+                return const Center(child: Text("No supply for today"));
+              }
+
+              double deliveredQty = 0;
+              // double deliveredAmount = 0;
+              int deliveredCount = 0;
+
+              double undeliveredQty = 0;
+              // double undeliveredAmount = 0;
+              int undeliveredCount = 0;
+
+              for (final item in items) {
+                final date = DateTime.parse(item['created_at']);
+
+                if (!DateFilterHelper.isInRange(
+                  date: date,
+                  filter: _filter,
+                  customRange: _customRange,
+                ))
+                  continue;
+
+                final qty = (item['quantity'] ?? 0).toDouble();
+                // final amount = (item['amount'] ?? 0).toDouble();
+
+                if (item['is_delivered'] == 1) {
+                  deliveredQty += qty;
+                  // deliveredAmount += amount;
+                  deliveredCount++;
+                } else {
+                  undeliveredQty += qty;
+                  // undeliveredAmount += amount;
+                  undeliveredCount++;
+                }
+              }
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _info("Employee", s['employee']['name']),
+                        _info("Phone", s['employee']['phone'] ?? "N/A"),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        _metricCard(
+                          "Delivered ($deliveredCount)",
+                          "$deliveredQty L",
+                          // "₹ $deliveredAmount",
+                          Colors.green,
+                          Icons.check_circle,
+                        ),
+                        const SizedBox(width: 2),
+                        _metricCard(
+                          "Undelivered ($undeliveredCount)",
+                          "$undeliveredQty L",
+                          // "₹ $undeliveredAmount",
+                          Colors.red,
+                          Icons.pending_actions,
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    const Text(
+                      "Supply Items ",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    ...items.map<Widget>((i) {
+                      final customerName =
+                          i['customer']?['name'] ??
+                          'Customer #${i['customer_id']}';
+
+                      return Card(
+                        child: ListTile(
+                          title: Text(customerName),
+                          subtitle: Text("${i['milk']} • ${i['quantity']} L"),
+                          trailing: Text(
+                            i['is_delivered'] == 1 ? "Delivered" : "Pending",
+                            style: TextStyle(
+                              color:
+                                  i['is_delivered'] == 1
+                                      ? Colors.green
+                                      : Colors.red,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

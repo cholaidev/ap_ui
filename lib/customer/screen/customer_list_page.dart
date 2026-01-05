@@ -16,17 +16,104 @@ class CustomerListPage extends StatefulWidget {
 }
 
 class _CustomerListPageState extends State<CustomerListPage> {
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<dynamic> _allCustomers = [];
+  List<dynamic> _filteredCustomers = [];
+
   @override
   void initState() {
     super.initState();
     context.read<CustomerBloc>().add(FetchCustomers());
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  /// 🔄 Pull-to-refresh
+  Future<void> _onRefresh() async {
+    context.read<CustomerBloc>().add(FetchCustomers());
+  }
+
+  /// 🔍 Search (NAME + PHONE + MILK + LOCATION + HOUSE NAME)
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+
+    setState(() {
+      _filteredCustomers =
+          _allCustomers.where((c) {
+            return (c['name'] ?? '').toLowerCase().contains(query) ||
+                (c['phone'] ?? '').toString().contains(query) ||
+                (c['milk'] ?? '').toLowerCase().contains(query) ||
+                (c['location'] ?? '').toLowerCase().contains(query) ||
+                (c['house_name'] ?? '').toLowerCase().contains(query);
+          }).toList();
+    });
+  }
+
+  void _startSearch() {
+    setState(() => _isSearching = true);
+  }
+
+  void _stopSearch() {
+    setState(() {
+      _isSearching = false;
+      _searchController.clear();
+      _filteredCustomers = _allCustomers;
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(color: whiteColor),
+        backgroundColor: const Color(0xFF2E7D32),
+
+        /// 🔍 TITLE / SEARCH FIELD
+        title:
+            _isSearching
+                ? Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.black),
+                    cursorColor: Colors.black,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: const InputDecoration(
+                      hintText: "Search name, phone, house, milk, location...",
+                      hintStyle: TextStyle(color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                )
+                : const Text("Customers", style: TextStyle(color: whiteColor)),
+
         actions: [
+          IconButton(
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: whiteColor,
+            ),
+            onPressed: () => _isSearching ? _stopSearch() : _startSearch(),
+          ),
+
+          /// BULK IMPORT
           PopupMenuButton<String>(
             iconColor: whiteColor,
             onSelected: (value) {
@@ -52,171 +139,152 @@ class _CustomerListPageState extends State<CustomerListPage> {
                 ],
           ),
         ],
-        leading: const BackButton(color: whiteColor),
-        title: const Text("Customers", style: TextStyle(color: whiteColor)),
-        backgroundColor: const Color(0xFF2E7D32),
       ),
 
       body: BlocBuilder<CustomerBloc, CustomerState>(
         builder: (context, state) {
-          print('check runtime state ${state.runtimeType}');
           if (state is CustomerLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (state is CustomerLoaded) {
-            final customers = state.customers;
+            _allCustomers = state.customers;
+            if (!_isSearching) {
+              _filteredCustomers = _allCustomers;
+            }
 
-            // 🔢 Total stats
+            final customers = _filteredCustomers;
+
+            /// METRICS
             final totalCustomers = customers.length;
-            num totalLiters = customers.fold(
+            final totalLiters = customers.fold<num>(
               0,
-              (sum, e) => sum + (e["quantity"] ?? 0),
+              (sum, e) => sum + (e['quantity'] ?? 0),
             );
 
             return Column(
               children: [
-                /// 🔥 METRICS CARD
-                Padding(
-                  padding: const EdgeInsets.all(0),
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32),
-                      borderRadius: BorderRadius.circular(0),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text(
-                              "Total Customers",
-                              style: TextStyle(color: whiteColor, fontSize: 14),
+                /// METRICS CARD
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  color: const Color(0xFF2E7D32),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          const Text(
+                            "Total Customers",
+                            style: TextStyle(color: whiteColor),
+                          ),
+                          Text(
+                            "$totalCustomers",
+                            style: const TextStyle(
+                              color: whiteColor,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 5),
-                            Text(
-                              "$totalCustomers",
-                              style: const TextStyle(
-                                color: whiteColor,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          const Text(
+                            "Total Liters",
+                            style: TextStyle(color: whiteColor),
+                          ),
+                          Text(
+                            "$totalLiters L",
+                            style: const TextStyle(
+                              color: whiteColor,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
-                        Column(
-                          children: [
-                            const Text(
-                              "Total Liters",
-                              style: TextStyle(color: whiteColor, fontSize: 14),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              "$totalLiters L",
-                              style: const TextStyle(
-                                color: whiteColor,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
 
-                /// CUSTOMER LIST
+                /// CUSTOMER LIST + PULL TO REFRESH
                 Expanded(
-                  child:
-                      customers.isEmpty
-                          ? const Center(
-                            child: Text(
-                              "No customers found",
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          )
-                          : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
-                            itemCount: customers.length,
-                            itemBuilder: (context, index) {
-                              final c = customers[index];
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: const Color(0xFF2E7D32),
+                    child:
+                        customers.isEmpty
+                            ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                SizedBox(height: 200),
+                                Center(child: Text("No customers found")),
+                              ],
+                            )
+                            : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: customers.length,
+                              itemBuilder: (context, index) {
+                                final c = customers[index];
 
-                              return Card(
-                                elevation: 1,
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                child: ListTile(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (_) =>
-                                                CustomerDetailPage(id: c['id']),
-                                      ),
-                                    );
-                                  },
-
-                                  title: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      /// NAME (takes remaining space)
-                                      Expanded(
-                                        child: Text(
-                                          c['name'] ?? '',
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-
-                                      const SizedBox(width: 8),
-
-                                      /// MILK + LITERS (fixed size)
-                                      Text(
-                                        "${c['milk']} (${c['quantity']} L)",
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 4,
                                   ),
-
-                                  subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        /// PHONE
-                                        Text(
-                                          "📞 ${c['phone'] ?? ''}",
-                                          style: const TextStyle(fontSize: 14),
+                                  child: ListTile(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (_) => CustomerDetailPage(
+                                                id: c['id'],
+                                              ),
                                         ),
-
-                                        /// ACTIVE/INACTIVE ICON
-                                        Icon(
-                                          c['is_active'] == 1
-                                              ? Icons.check_circle
-                                              : Icons.cancel,
-                                          color:
-                                              c['is_active'] == 1
-                                                  ? Colors.green
-                                                  : Colors.red,
+                                      );
+                                    },
+                                    title: Text(
+                                      c['name'] ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "🏠 ${c['house_name'] ?? ''}",
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "📞 ${c['phone']}",
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "📍 ${c['location'] ?? ''}",
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       ],
                                     ),
+                                    trailing: Text(
+                                      "${c['milk']} (${c['quantity']} L)",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
+                  ),
                 ),
               ],
             );
@@ -232,11 +300,12 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2E7D32),
-        onPressed:
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CustomerFormPage()),
-            ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CustomerFormPage()),
+          );
+        },
         child: const Icon(Icons.add, color: whiteColor),
       ),
     );
