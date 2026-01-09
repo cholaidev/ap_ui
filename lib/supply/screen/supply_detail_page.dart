@@ -188,10 +188,10 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
               final todayEnd = todayStart.add(const Duration(days: 1));
 
               /// ❌ NOT TODAY → NO DATA
-              if (supplyDate.isBefore(todayStart) ||
-                  supplyDate.isAfter(todayEnd)) {
-                return const Center(child: Text("No supply for today"));
-              }
+              // if (supplyDate.isBefore(todayStart) ||
+              //     supplyDate.isAfter(todayEnd)) {
+              //   return const Center(child: Text("No supply for today"));
+              // }
 
               double deliveredQty = 0;
               // double deliveredAmount = 0;
