@@ -33,7 +33,7 @@ class _EmployeeSelectListPageState extends State<EmployeeSelectListPage> {
       selected = widget.selectedEmployee;
     }
 
-    context.read<EmployeeBloc>().add(LoadEmployees());
+    context.read<EmployeeBloc>().add(LoadEmployees(status: 'active'));
     supplyCubit = context.read<SupplyCubitCubit>();
 
     _searchController.addListener(_onSearchChanged);

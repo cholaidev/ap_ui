@@ -15,7 +15,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
     on<FetchCustomers>((event, emit) async {
       emit(CustomerLoading());
       try {
-        final customers = await customerRepo.fetchCustomers();
+        final customers = await customerRepo.fetchCustomers(event.status);
         print('over all customers $customers');
         totalActiveCustomers =
             customers.where((c) => c['is_active'] == 1).length;
@@ -54,7 +54,7 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       emit(CustomerLoading());
       try {
         await customerRepo.updateCustomer(event.id, event.data);
-        emit(CustomerSuccess("Customer updated successfully"));
+        emit(CustomerUpdateSuccess("Customer updated successfully"));
       } catch (e) {
         emit(CustomerError(e.toString()));
       }

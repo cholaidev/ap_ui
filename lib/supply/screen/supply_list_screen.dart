@@ -123,63 +123,64 @@ class _SupplyListPageState extends State<SupplyListPage> {
       body: Column(
         children: [
           /// 🔽 DATE FILTER BAR
-          Container(
-            padding: const EdgeInsets.all(6),
-            color: Colors.grey.shade100,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Filter by date",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    DropdownButton<DateFilterType>(
-                      value: _filter,
-                      underline: const SizedBox(),
-                      onChanged: (v) {
-                        if (v != null) _onFilterChange(v);
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: DateFilterType.today,
-                          child: Text("Today"),
-                        ),
-                        DropdownMenuItem(
-                          value: DateFilterType.week,
-                          child: Text("This Week"),
-                        ),
-                        DropdownMenuItem(
-                          value: DateFilterType.month,
-                          child: Text("This Month"),
-                        ),
-                        DropdownMenuItem(
-                          value: DateFilterType.custom,
-                          child: Text("Custom"),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+          if (!widget.is_from_assigned)
+            Container(
+              padding: const EdgeInsets.all(6),
+              color: Colors.grey.shade100,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Filter by date",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      DropdownButton<DateFilterType>(
+                        value: _filter,
+                        underline: const SizedBox(),
+                        onChanged: (v) {
+                          if (v != null) _onFilterChange(v);
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: DateFilterType.today,
+                            child: Text("Today"),
+                          ),
+                          DropdownMenuItem(
+                            value: DateFilterType.week,
+                            child: Text("This Week"),
+                          ),
+                          DropdownMenuItem(
+                            value: DateFilterType.month,
+                            child: Text("This Month"),
+                          ),
+                          DropdownMenuItem(
+                            value: DateFilterType.custom,
+                            child: Text("Custom"),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
 
-                if (_filter == DateFilterType.custom && _customRange != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      "From ${_formatDate(_customRange!.start)} "
-                      "to ${_formatDate(_customRange!.end)}",
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+                  if (_filter == DateFilterType.custom && _customRange != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "From ${_formatDate(_customRange!.start)} "
+                        "to ${_formatDate(_customRange!.end)}",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
 
           /// 📦 SUPPLY LIST (API DATA ONLY)
           Expanded(
@@ -193,7 +194,13 @@ class _SupplyListPageState extends State<SupplyListPage> {
                   final supplies = state.supplies;
 
                   if (supplies.isEmpty) {
-                    return const Center(child: Text("No supplies found"));
+                    if (widget.is_from_assigned) {
+                      return const Center(
+                        child: Text("No assigned supplies found"),
+                      );
+                    } else {
+                      return const Center(child: Text("No supplies found"));
+                    }
                   }
 
                   return ListView.builder(

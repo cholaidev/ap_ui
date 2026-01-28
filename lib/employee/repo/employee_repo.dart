@@ -60,10 +60,12 @@ class EmployeeRepository {
   // ----------------------------------------------------------------
   // 📌 GET ALL EMPLOYEES
   // ----------------------------------------------------------------
-  Future<List<dynamic>> getEmployees() async {
+  Future<List<dynamic>> getEmployees(String status) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/employees'),
+        Uri.parse(
+          '$baseUrl/employees',
+        ).replace(queryParameters: {'status': status}),
         headers: {
           'Authorization': 'Bearer ${_getToken()}',
           'Accept': 'application/json',

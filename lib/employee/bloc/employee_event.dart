@@ -2,7 +2,10 @@ sealed class EmployeeEvent {
   const EmployeeEvent();
 }
 
-class LoadEmployees extends EmployeeEvent {}
+class LoadEmployees extends EmployeeEvent {
+  final String status;
+  LoadEmployees({required this.status});
+}
 
 class GetEmployeeDetails extends EmployeeEvent {
   final int id;

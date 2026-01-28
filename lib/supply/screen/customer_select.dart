@@ -34,7 +34,7 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
       selectedCustomers.addAll(widget.initialSelected!);
     }
 
-    context.read<CustomerBloc>().add(FetchCustomers());
+    context.read<CustomerBloc>().add(FetchCustomers(status: 'active'));
     supplyCubit = context.read<SupplyCubitCubit>();
 
     _searchController.addListener(_onSearchChanged);
@@ -207,7 +207,7 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                         ),
 
                         title: Text(
-                          c['name'] ?? '',
+                          "🏠 ${c['house_name'] ?? ''}",
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -219,7 +219,7 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                           children: [
                             const SizedBox(height: 4),
                             Text(
-                              "🏠 ${c['house_name'] ?? ''}",
+                              "👤 ${c['name'] ?? ''}",
                               style: const TextStyle(fontSize: 13),
                             ),
                             const SizedBox(height: 2),

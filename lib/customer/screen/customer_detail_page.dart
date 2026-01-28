@@ -55,7 +55,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   Future<bool> _onPhoneBackPressed() async {
     debugPrint('phone back pressed');
 
-    context.read<CustomerBloc>().add(FetchCustomers());
+    context.read<CustomerBloc>().add(FetchCustomers(status: 'active'));
 
     return true; // allow navigation
   }
@@ -65,6 +65,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
     return BlocListener<CustomerBloc, CustomerState>(
       listener: (context, state) {
         /// ✅ DELETE SUCCESS
+        ///
         if (state is DeleteSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -73,7 +74,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             ),
           );
 
-          context.read<CustomerBloc>().add(FetchCustomers());
+          context.read<CustomerBloc>().add(FetchCustomers(status: 'active'));
           Navigator.pop(context);
         }
 
@@ -97,7 +98,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
               color: whiteColor,
               onPressed: () {
                 print('back prevented');
-                context.read<CustomerBloc>().add(FetchCustomers());
+                context.read<CustomerBloc>().add(
+                  FetchCustomers(status: 'active'),
+                );
                 Navigator.pop(context);
               },
             ),

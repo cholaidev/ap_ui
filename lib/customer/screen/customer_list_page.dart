@@ -9,7 +9,8 @@ import 'customer_detail_page.dart';
 import 'customer_form_page.dart';
 
 class CustomerListPage extends StatefulWidget {
-  const CustomerListPage({super.key});
+  final String? status;
+  const CustomerListPage({super.key, this.status = 'active'});
 
   @override
   State<CustomerListPage> createState() => _CustomerListPageState();
@@ -25,13 +26,13 @@ class _CustomerListPageState extends State<CustomerListPage> {
   @override
   void initState() {
     super.initState();
-    context.read<CustomerBloc>().add(FetchCustomers());
+    context.read<CustomerBloc>().add(FetchCustomers(status: widget.status!));
     _searchController.addListener(_onSearchChanged);
   }
 
   /// 🔄 Pull-to-refresh
   Future<void> _onRefresh() async {
-    context.read<CustomerBloc>().add(FetchCustomers());
+    context.read<CustomerBloc>().add(FetchCustomers(status: widget.status!));
   }
 
   /// 🔍 Search (NAME + PHONE + MILK + LOCATION + HOUSE NAME)
@@ -66,6 +67,31 @@ class _CustomerListPageState extends State<CustomerListPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  String formatQuantity(dynamic value) {
+    final numVal = double.tryParse(value?.toString() ?? '0') ?? 0;
+    return numVal.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+  }
+
+  Widget buildStatusChip(dynamic isActive) {
+    final bool active = isActive == 1 || isActive == true;
+
+    return Chip(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+      label: Text(
+        active ? "Active" : "Inactive",
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      backgroundColor: active ? Colors.green : Colors.red,
+    );
   }
 
   @override
@@ -157,9 +183,11 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
             /// METRICS
             final totalCustomers = customers.length;
-            final totalLiters = customers.fold<num>(
-              0,
-              (sum, e) => sum + (e['quantity'] ?? 0),
+            final totalLiters = customers.fold<double>(
+              0.0,
+              (sum, e) =>
+                  sum +
+                  (double.tryParse(e['quantity']?.toString() ?? '0') ?? 0.0),
             );
 
             return Column(
@@ -194,7 +222,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
                             style: TextStyle(color: whiteColor),
                           ),
                           Text(
-                            "$totalLiters L",
+                            "${formatQuantity(totalLiters)} L",
                             style: const TextStyle(
                               color: whiteColor,
                               fontSize: 22,
@@ -245,7 +273,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                       );
                                     },
                                     title: Text(
-                                      c['name'] ?? '',
+                                      "🏠 ${c['house_name'] ?? ''}",
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -256,7 +284,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "🏠 ${c['house_name'] ?? ''}",
+                                          "👤 ${c['name'] ?? ''}",
                                           style: const TextStyle(fontSize: 13),
                                         ),
                                         const SizedBox(height: 2),
@@ -274,11 +302,21 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                         ),
                                       ],
                                     ),
-                                    trailing: Text(
-                                      "${c['milk']} (${c['quantity']} L)",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    trailing: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          "${c['milk']} (${formatQuantity(c['quantity'])} L)",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        buildStatusChip(c['is_active']),
+                                      ],
                                     ),
                                   ),
                                 );

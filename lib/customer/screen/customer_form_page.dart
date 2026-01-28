@@ -50,9 +50,9 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
         'house_name': _houseNameController.text.trim(),
         'location': _locationController.text.trim(),
         'milk': _milkType,
-        'quantity': int.tryParse(_quantityController.text.trim()),
+        'quantity': double.tryParse(_quantityController.text.trim()),
       };
-
+      print('customer payload $data');
       if (widget.editCustomer != null) {
         context.read<CustomerBloc>().add(
           UpdateCustomer(widget.editCustomer!['id'], data),
@@ -106,7 +106,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
       body: BlocListener<CustomerBloc, CustomerState>(
         listener: (context, state) {
           if (state is CustomerSuccess) {
-            context.read<CustomerBloc>().add(FetchCustomers());
+            context.read<CustomerBloc>().add(FetchCustomers(status: 'active'));
             if (widget.editCustomer != null) {
               context.read<CustomerBloc>().add(
                 GetCustomerDetails(widget.editCustomer!['id']),
@@ -115,6 +115,15 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
+            Navigator.pop(context);
+          } else if (state is CustomerUpdateSuccess) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+
+            context.read<CustomerBloc>().add(
+              GetCustomerDetails(widget.editCustomer!['id']),
+            );
             Navigator.pop(context);
           } else if (state is CustomerError) {
             ScaffoldMessenger.of(
@@ -241,10 +250,21 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _quantityController,
-                    keyboardType: TextInputType.number,
-                    validator: (v) => v!.isEmpty ? "Enter quantity" : null,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return "Enter quantity";
+
+                      final value = double.tryParse(v);
+                      if (value == null) return "Enter valid number";
+                      if (value < 0.1) return "Minimum quantity is 0.1";
+                      if (value > 1000) return "Maximum quantity is 1000";
+
+                      return null;
+                    },
                     decoration: const InputDecoration(
-                      hintText: "Enter quantity",
+                      hintText: "Enter quantity ",
                       border: OutlineInputBorder(),
                     ),
                   ),

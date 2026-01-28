@@ -1,6 +1,8 @@
+import 'package:ap_ui/customer/screen/customer_list_page.dart';
 import 'package:ap_ui/dashboard/bloc/assigned_supply_bloc.dart';
 import 'package:ap_ui/dashboard/bloc/assigned_supply_state.dart';
 import 'package:ap_ui/employee/bloc/employee_state.dart';
+import 'package:ap_ui/employee/screen/employee_list.dart';
 import 'package:ap_ui/setting/bloc/setting_bloc.dart';
 import 'package:ap_ui/setting/bloc/setting_event.dart';
 import 'package:ap_ui/setting/bloc/setting_state.dart';
@@ -46,8 +48,10 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
 
-    customerBloc = context.read<CustomerBloc>()..add(FetchCustomers());
-    employeeBloc = context.read<EmployeeBloc>()..add(LoadEmployees());
+    customerBloc =
+        context.read<CustomerBloc>()..add(FetchCustomers(status: 'all'));
+    employeeBloc =
+        context.read<EmployeeBloc>()..add(LoadEmployees(status: 'all'));
     supplyCubit = context.read<SupplyCubitCubit>();
     settingBloc = context.read<SettingBloc>();
     assignedSupplyBloc = context.read<AssignedSupplyBloc>();
@@ -334,6 +338,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         value: '${customerBloc.totalActiveCustomers}',
                         icon: Icons.people,
                         color: Colors.green,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => CustomerListPage(status: 'active'),
+                            ),
+                          );
+                        },
                       ),
                 ),
                 BlocBuilder<CustomerBloc, CustomerState>(
@@ -344,6 +357,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         value: '${customerBloc.totalInActiveCustomers}',
                         icon: Icons.people_outline,
                         color: Colors.orange,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => CustomerListPage(status: 'cancelled'),
+                            ),
+                          );
+                        },
                       ),
                 ),
                 BlocBuilder<EmployeeBloc, EmployeeState>(
@@ -354,6 +376,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         value: '${employeeBloc.totalActiveEmp}',
                         icon: Icons.badge,
                         color: Colors.blue,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => EmployeeListPage(status: 'active'),
+                            ),
+                          );
+                        },
                       ),
                 ),
                 BlocBuilder<EmployeeBloc, EmployeeState>(
@@ -364,6 +395,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         value: '${employeeBloc.totalInActiveEmp}',
                         icon: Icons.badge_outlined,
                         color: Colors.red,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => EmployeeListPage(status: 'cancelled'),
+                            ),
+                          );
+                        },
                       ),
                 ),
               ],
@@ -466,46 +506,51 @@ class _DashboardCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _DashboardCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: color.withOpacity(0.15),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              maxLines: 2,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color,
+    return InkWell(
+      onTap: onTap,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: color.withOpacity(0.15),
+                child: Icon(icon, color: color, size: 28),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.black54),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                value,
+                maxLines: 2,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.black54),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -19,6 +19,11 @@ class CustomerSuccess extends CustomerState {
   CustomerSuccess(this.message);
 }
 
+class CustomerUpdateSuccess extends CustomerState {
+  final String message;
+  CustomerUpdateSuccess(this.message);
+}
+
 class DeleteSuccess extends CustomerState {
   final String message;
   DeleteSuccess(this.message);

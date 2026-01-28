@@ -8,7 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class EmployeeListPage extends StatefulWidget {
-  const EmployeeListPage({super.key});
+  final String? status;
+  const EmployeeListPage({super.key, this.status = 'active'});
 
   @override
   State<EmployeeListPage> createState() => _EmployeeListPageState();
@@ -24,13 +25,13 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
   @override
   void initState() {
     super.initState();
-    context.read<EmployeeBloc>().add(LoadEmployees());
+    context.read<EmployeeBloc>().add(LoadEmployees(status: widget.status!));
     _searchController.addListener(_onSearchChanged);
   }
 
   /// 🔄 Pull to refresh
   Future<void> _onRefresh() async {
-    context.read<EmployeeBloc>().add(LoadEmployees());
+    context.read<EmployeeBloc>().add(LoadEmployees(status: widget.status!));
   }
 
   /// 🔍 Search by NAME + PHONE

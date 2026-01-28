@@ -4,7 +4,10 @@ sealed class CustomerEvent {
   const CustomerEvent();
 }
 
-class FetchCustomers extends CustomerEvent {}
+class FetchCustomers extends CustomerEvent {
+  final String status;
+  FetchCustomers({required this.status});
+}
 
 class GetCustomerDetails extends CustomerEvent {
   final int id;

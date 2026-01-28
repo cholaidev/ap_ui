@@ -55,10 +55,14 @@ class CustomerRepository {
   // ----------------------------------------------------------------
   // 📌 GET ALL CUSTOMERS
   // ----------------------------------------------------------------
-  Future<List<dynamic>> fetchCustomers() async {
+  Future<List<dynamic>> fetchCustomers(String status) async {
     try {
+      print('check status $status');
+      final uri = Uri.parse(
+        '$baseUrl/customers',
+      ).replace(queryParameters: {'status': status});
       final response = await http.get(
-        Uri.parse('$baseUrl/customers'),
+        uri,
         headers: {
           'Authorization': 'Bearer ${_getToken()}',
           'Accept': 'application/json',
@@ -80,6 +84,8 @@ class CustomerRepository {
   // ----------------------------------------------------------------
   Future<Map<String, dynamic>> getCustomerDetails(int id) async {
     try {
+      print('📡 Fetching customer details for ID: $id');
+
       final response = await http.get(
         Uri.parse('$baseUrl/customers/$id'),
         headers: {
@@ -88,13 +94,23 @@ class CustomerRepository {
         },
       );
 
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        return jsonDecode(response.body)['data'];
+        final body = jsonDecode(response.body);
+
+        if (body is Map && body['data'] != null) {
+          return Map<String, dynamic>.from(body['data']);
+        } else {
+          throw Exception('Invalid response format');
+        }
       }
 
       throw _handleError(response);
     } catch (e) {
-      throw Exception(e.toString().replaceAll('Exception: ', ''));
+      print('❌ getCustomerDetails error: $e');
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 

@@ -64,7 +64,7 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
   Future<bool> _onPhoneBackPressed() async {
     debugPrint('phone back pressed');
 
-    context.read<EmployeeBloc>().add(LoadEmployees());
+    context.read<EmployeeBloc>().add(LoadEmployees(status: 'active'));
 
     return true; // allow navigation
   }
@@ -81,7 +81,7 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
             ),
           );
 
-          context.read<EmployeeBloc>().add(LoadEmployees());
+          context.read<EmployeeBloc>().add(LoadEmployees(status: 'active'));
           Navigator.pop(context);
         }
 
@@ -104,7 +104,9 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
               color: whiteColor,
               onPressed: () {
                 print('back prevented');
-                context.read<EmployeeBloc>().add(LoadEmployees());
+                context.read<EmployeeBloc>().add(
+                  LoadEmployees(status: 'active'),
+                );
                 Navigator.pop(context);
               },
             ),

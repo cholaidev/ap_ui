@@ -31,6 +31,7 @@ class SupplyCubitCubit extends Cubit<SupplyCubitState> {
     double amount = 0;
 
     for (final c in customers) {
+      print('check quantity in c $c');
       final qty = double.tryParse("${c['quantity']}") ?? 0;
       final price = priceofMilk;
 

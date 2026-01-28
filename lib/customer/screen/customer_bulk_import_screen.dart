@@ -246,7 +246,9 @@ class _BulkImportPageState extends State<BulkImportPage> {
                       onPressed: () {
                         Navigator.pop(context);
                         Navigator.pop(context);
-                        context.read<CustomerBloc>().add(FetchCustomers());
+                        context.read<CustomerBloc>().add(
+                          FetchCustomers(status: 'active'),
+                        );
                       },
                       child: const Text("OK"),
                     ),

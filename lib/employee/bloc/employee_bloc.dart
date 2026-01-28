@@ -13,7 +13,7 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
     on<LoadEmployees>((event, emit) async {
       emit(EmployeeLoading());
       try {
-        final result = await employeeRepo.getEmployees();
+        final result = await employeeRepo.getEmployees(event.status);
 
         totalActiveEmp = result.where((c) => c['is_active'] == 1).length;
         totalInActiveEmp = result.where((c) => c['is_active'] == 0).length;

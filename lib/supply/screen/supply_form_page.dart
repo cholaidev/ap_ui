@@ -46,13 +46,20 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
     /// PREFILL EDIT DATA
     if (widget.editSupply != null) {
       print('check edit supply ${widget.editSupply}');
+
       supplyCubit.setEmployee(widget.editSupply!['employee']);
+
       final items = widget.editSupply?['items'] as List<dynamic>? ?? [];
+
       final customers =
-          items
-              .where((item) => item['customer'] != null)
-              .map((item) => Map<String, dynamic>.from(item['customer']))
-              .toList();
+          items.where((item) => item['customer'] != null).map((item) {
+            final customer = Map<String, dynamic>.from(item['customer']);
+            customer['quantity'] = item['quantity']; // 🔥 0.6 comes here
+            customer['price_per_liter'] = item['price_per_liter'];
+            return customer;
+          }).toList();
+
+      print('check liters after fix $customers');
 
       supplyCubit.setCustomers(customers);
 
@@ -368,11 +375,18 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            c['name'],
+                                            c['house_name'],
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
+                                          Text(
+                                            c['name'],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.normal,
+                                            ),
+                                          ),
+
                                           Text("📞 ${c['phone']}"),
                                         ],
                                       ),
