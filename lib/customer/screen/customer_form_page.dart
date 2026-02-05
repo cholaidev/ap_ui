@@ -17,80 +17,110 @@ class CustomerFormPage extends StatefulWidget {
 class _CustomerFormPageState extends State<CustomerFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // CONTROLLERS
+  // ================= CONTROLLERS =================
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _houseNameController = TextEditingController();
   final _locationController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _phoneController = TextEditingController(); // ✅ ADDED
 
-  String? _milkType = 'Cow';
+  final _cowQtyController = TextEditingController();
+  final _buffaloQtyController = TextEditingController();
 
+  String _milkType = 'Cow'; // Cow | Buffalo | Both
+
+  // ================= SAFE CONVERTER =================
+  double _toDouble(dynamic v) {
+    return double.tryParse(v?.toString() ?? '0') ?? 0.0;
+  }
+
+  // ================= INIT =================
   @override
   void initState() {
     super.initState();
 
     if (widget.editCustomer != null) {
-      _nameController.text = widget.editCustomer!['name'] ?? '';
-      _houseNameController.text = widget.editCustomer!['house_name'] ?? '';
-      _locationController.text = widget.editCustomer!['location'] ?? '';
-      _milkType = widget.editCustomer!['milk'];
-      _quantityController.text =
-          widget.editCustomer!['quantity']?.toString() ?? '';
-      _phoneController.text = widget.editCustomer!['phone'] ?? ''; // ✅ ADDED
-    }
-  }
+      final c = widget.editCustomer!;
 
-  /// SAVE BUTTON HANDLER
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      final data = {
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(), // ✅ ADDED
-        'house_name': _houseNameController.text.trim(),
-        'location': _locationController.text.trim(),
-        'milk': _milkType,
-        'quantity': double.tryParse(_quantityController.text.trim()),
-      };
-      print('customer payload $data');
-      if (widget.editCustomer != null) {
-        context.read<CustomerBloc>().add(
-          UpdateCustomer(widget.editCustomer!['id'], data),
-        );
+      _nameController.text = c['name'] ?? '';
+      _phoneController.text = c['phone'] ?? '';
+      _houseNameController.text = c['house_name'] ?? '';
+      _locationController.text = c['location'] ?? '';
+
+      final cowQty = _toDouble(c['cow_milk_quantity']);
+      final buffaloQty = _toDouble(c['buffalo_milk_quantity']);
+
+      _cowQtyController.text = cowQty > 0 ? cowQty.toString() : '';
+      _buffaloQtyController.text = buffaloQty > 0 ? buffaloQty.toString() : '';
+
+      if (cowQty > 0 && buffaloQty > 0) {
+        _milkType = 'Both';
+      } else if (buffaloQty > 0) {
+        _milkType = 'Buffalo';
       } else {
-        context.read<CustomerBloc>().add(AddCustomer(data));
+        _milkType = 'Cow';
       }
     }
   }
 
-  /// DISCARD POPUP
-  void _showDiscardPopup() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Discard Changes?"),
-            content: const Text(
-              "Are you sure you want to discard the changes?",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text("Discard"),
-              ),
-            ],
+  // ================= SUBMIT =================
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final data = {
+      'name': _nameController.text.trim(),
+      'phone': _phoneController.text.replaceAll(RegExp(r'\D'), ''),
+      'house_name': _houseNameController.text.trim(),
+      'location': _locationController.text.trim(),
+      'cow_milk_quantity':
+          _milkType == 'Cow' || _milkType == 'Both'
+              ? _toDouble(_cowQtyController.text)
+              : 0,
+      'buffalo_milk_quantity':
+          _milkType == 'Buffalo' || _milkType == 'Both'
+              ? _toDouble(_buffaloQtyController.text)
+              : 0,
+    };
+
+    if (widget.editCustomer != null) {
+      context.read<CustomerBloc>().add(
+        UpdateCustomer(widget.editCustomer!['id'], data),
+      );
+    } else {
+      context.read<CustomerBloc>().add(AddCustomer(data));
+    }
+  }
+
+  // ================= QUANTITY FIELD =================
+  Widget _quantityField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          validator: (v) {
+            final d = _toDouble(v);
+            if (d <= 0) return "Enter valid quantity";
+            return null;
+          },
+          decoration: const InputDecoration(
+            hintText: "Liters",
+            border: OutlineInputBorder(),
           ),
+        ),
+      ],
     );
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,7 +132,6 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
         ),
         backgroundColor: const Color(0xFF2E7D32),
       ),
-
       body: BlocListener<CustomerBloc, CustomerState>(
         listener: (context, state) {
           if (state is CustomerSuccess) {
@@ -139,102 +168,51 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// NAME
-                  const Text(
-                    "Name",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _nameController,
-                    validator: (v) => v!.isEmpty ? "Enter name" : null,
-                    decoration: const InputDecoration(
-                      hintText: "Enter name",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  _textField("Name", _nameController, required: true),
 
                   const SizedBox(height: 16),
 
-                  /// PHONE  📞   (NEW FIELD)
-                  const Text(
+                  _textField(
                     "Phone Number",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10, // required for limiting input
-                    buildCounter:
-                        (
-                          _, {
-                          required int currentLength,
-                          required bool isFocused,
-                          required int? maxLength,
-                        }) => null,
+                    _phoneController,
+                    required: true,
+                    keyboard: TextInputType.phone,
+                    maxLength: 10,
                     validator: (v) {
-                      if (v == null || v.isEmpty) return "Enter phone number";
-                      if (v.length != 10)
+                      final cleaned = v?.replaceAll(RegExp(r'\D'), '') ?? '';
+                      if (cleaned.length != 10) {
                         return "Phone number must be 10 digits";
+                      }
                       return null;
                     },
-                    decoration: const InputDecoration(
-                      hintText: "Enter phone number",
-                      border: OutlineInputBorder(),
-                    ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  /// HOUSE NAME
-                  const Text(
-                    "House Name",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _houseNameController,
-                    decoration: const InputDecoration(
-                      hintText: "Enter house name",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  _textField("House Name", _houseNameController),
 
                   const SizedBox(height: 16),
 
-                  /// LOCATION
-                  const Text(
-                    "Location",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _locationController,
-                    decoration: const InputDecoration(
-                      hintText: "Enter location",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  _textField("Location", _locationController),
 
                   const SizedBox(height: 16),
 
-                  /// MILK
                   const Text(
-                    "Milk",
+                    "Milk Type",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: _milkType,
-                    items:
-                        ["Cow", "Buffalo", "Both"]
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                    onChanged: (v) => setState(() => _milkType = v),
-                    validator: (v) => v == null ? "Select milk type" : null,
+                    items: const [
+                      DropdownMenuItem(value: 'Cow', child: Text('Cow')),
+                      DropdownMenuItem(
+                        value: 'Buffalo',
+                        child: Text('Buffalo'),
+                      ),
+                      DropdownMenuItem(value: 'Both', child: Text('Both')),
+                    ],
+                    onChanged: (v) => setState(() => _milkType = v!),
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                     ),
@@ -242,32 +220,19 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
 
                   const SizedBox(height: 16),
 
-                  /// QUANTITY
-                  const Text(
-                    "Quantity (Liters)",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _quantityController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                  if (_milkType == 'Cow' || _milkType == 'Both')
+                    _quantityField(
+                      label: "Cow Milk Quantity",
+                      controller: _cowQtyController,
                     ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return "Enter quantity";
 
-                      final value = double.tryParse(v);
-                      if (value == null) return "Enter valid number";
-                      if (value < 0.1) return "Minimum quantity is 0.1";
-                      if (value > 1000) return "Maximum quantity is 1000";
+                  if (_milkType == 'Both') const SizedBox(height: 16),
 
-                      return null;
-                    },
-                    decoration: const InputDecoration(
-                      hintText: "Enter quantity ",
-                      border: OutlineInputBorder(),
+                  if (_milkType == 'Buffalo' || _milkType == 'Both')
+                    _quantityField(
+                      label: "Buffalo Milk Quantity",
+                      controller: _buffaloQtyController,
                     ),
-                  ),
 
                   const SizedBox(height: 100),
                 ],
@@ -276,29 +241,54 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
           ),
         ),
       ),
-
-      /// SAVE + DISCARD FAB
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: "discardBtn",
-            backgroundColor: Colors.red,
-            onPressed: _showDiscardPopup,
-            icon: const Icon(Icons.close, color: whiteColor),
-            label: const Text("Discard", style: TextStyle(color: whiteColor)),
-          ),
-
-          FloatingActionButton.extended(
-            heroTag: "saveBtn",
-            backgroundColor: const Color(0xFF2E7D32),
-            onPressed: _submit,
-            icon: const Icon(Icons.save, color: whiteColor),
-            label: const Text("Save", style: TextStyle(color: whiteColor)),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF2E7D32),
+        onPressed: _submit,
+        icon: const Icon(Icons.save, color: whiteColor),
+        label: const Text("Save", style: TextStyle(color: whiteColor)),
       ),
+    );
+  }
+
+  // ================= TEXT FIELD =================
+  Widget _textField(
+    String label,
+    TextEditingController controller, {
+    bool required = false,
+    TextInputType keyboard = TextInputType.text,
+    int? maxLength,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboard,
+          maxLength: maxLength,
+          buildCounter:
+              maxLength != null
+                  ? (
+                    _, {
+                    required int currentLength,
+                    required bool isFocused,
+                    int? maxLength,
+                  }) => null
+                  : null,
+          validator:
+              validator ??
+              (required
+                  ? (v) => v == null || v.isEmpty ? "Required" : null
+                  : null),
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+      ],
     );
   }
 }

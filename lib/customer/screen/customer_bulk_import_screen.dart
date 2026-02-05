@@ -33,17 +33,12 @@ class _BulkImportPageState extends State<BulkImportPage> {
     return cleaned.length == 10;
   }
 
-  bool _isValidMilk(String milk) {
-    final v = milk.toLowerCase().trim();
-    return v == 'cow' || v == 'buffalo';
-  }
-
-  double? _parseQuantity(dynamic value) {
+  double _parseQty(dynamic value) {
     try {
-      final q = double.parse(value.toString());
-      return q > 0 ? q : null;
+      final v = double.parse(value.toString());
+      return v >= 0 ? v : 0;
     } catch (_) {
-      return null;
+      return 0;
     }
   }
 
@@ -73,7 +68,7 @@ class _BulkImportPageState extends State<BulkImportPage> {
         _csvData = csv;
         _fileName = fileName;
       });
-    } catch (e) {
+    } catch (_) {
       _showSnack("Failed to read CSV file");
     }
   }
@@ -96,11 +91,12 @@ class _BulkImportPageState extends State<BulkImportPage> {
       final phone = row[1].toString().trim();
       final house = row[2].toString().trim();
       final location = row[3].toString().trim();
-      final milk = row[4].toString().trim();
-      final quantity = row.length > 5 ? row[5] : null;
+
+      final cowQty = row.length > 4 ? _parseQty(row[4]) : 0;
+      final buffaloQty = row.length > 5 ? _parseQty(row[5]) : 0;
 
       if (name.isEmpty) {
-        errors.add("Row ${i + 2}: Name is empty");
+        errors.add("Row ${i + 2}: Name missing");
         continue;
       }
 
@@ -114,14 +110,8 @@ class _BulkImportPageState extends State<BulkImportPage> {
         continue;
       }
 
-      if (!_isValidMilk(milk)) {
-        errors.add("Row ${i + 2}: Milk must be Cow/Buffalo");
-        continue;
-      }
-
-      final qty = _parseQuantity(quantity);
-      if (qty == null) {
-        errors.add("Row ${i + 2}: Quantity invalid");
+      if (cowQty == 0 && buffaloQty == 0) {
+        errors.add("Row ${i + 2}: Both milk quantities are zero");
         continue;
       }
 
@@ -130,8 +120,8 @@ class _BulkImportPageState extends State<BulkImportPage> {
         "phone": phone.replaceAll(RegExp(r'\D'), ''),
         "house": house,
         "location": location,
-        "milk": milk,
-        "quantity": qty,
+        "cow_milk_quantity": cowQty,
+        "buffalo_milk_quantity": buffaloQty,
       });
     }
 
@@ -270,78 +260,7 @@ class _BulkImportPageState extends State<BulkImportPage> {
           ),
           backgroundColor: const Color(0xFF2E7D32),
         ),
-
-        body: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text("Select CSV File"),
-                    onPressed: _loading ? null : _pickCSV,
-                  ),
-
-                  if (_fileName != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      "Selected: $_fileName",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-
-                  if (_csvData.isNotEmpty)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns:
-                            _csvData.first
-                                .map(
-                                  (e) => DataColumn(label: Text(e.toString())),
-                                )
-                                .toList(),
-                        rows:
-                            _csvData
-                                .skip(1)
-                                .map(
-                                  (row) => DataRow(
-                                    cells:
-                                        row
-                                            .map(
-                                              (c) =>
-                                                  DataCell(Text(c.toString())),
-                                            )
-                                            .toList(),
-                                  ),
-                                )
-                                .toList(),
-                      ),
-                    )
-                  else
-                    const SizedBox(
-                      height: 200,
-                      child: Center(child: Text("No file selected")),
-                    ),
-                ],
-              ),
-            ),
-
-            if (_loading)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.35),
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-              ),
-          ],
-        ),
-
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-
         floatingActionButton:
             _csvData.isEmpty
                 ? null

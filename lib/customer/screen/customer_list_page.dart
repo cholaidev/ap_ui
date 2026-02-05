@@ -30,30 +30,31 @@ class _CustomerListPageState extends State<CustomerListPage> {
     _searchController.addListener(_onSearchChanged);
   }
 
-  /// 🔄 Pull-to-refresh
   Future<void> _onRefresh() async {
     context.read<CustomerBloc>().add(FetchCustomers(status: widget.status!));
   }
 
-  /// 🔍 Search (NAME + PHONE + MILK + LOCATION + HOUSE NAME)
+  /// 🔍 SEARCH (NAME / PHONE / LOCATION / HOUSE / MILK)
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
 
     setState(() {
       _filteredCustomers =
           _allCustomers.where((c) {
+            final cow = (c['cow_milk_quantity'] ?? 0).toString();
+            final buffalo = (c['buffalo_milk_quantity'] ?? 0).toString();
+
             return (c['name'] ?? '').toLowerCase().contains(query) ||
                 (c['phone'] ?? '').toString().contains(query) ||
-                (c['milk'] ?? '').toLowerCase().contains(query) ||
                 (c['location'] ?? '').toLowerCase().contains(query) ||
-                (c['house_name'] ?? '').toLowerCase().contains(query);
+                (c['house_name'] ?? '').toLowerCase().contains(query) ||
+                cow.contains(query) ||
+                buffalo.contains(query);
           }).toList();
     });
   }
 
-  void _startSearch() {
-    setState(() => _isSearching = true);
-  }
+  void _startSearch() => setState(() => _isSearching = true);
 
   void _stopSearch() {
     setState(() {
@@ -69,26 +70,18 @@ class _CustomerListPageState extends State<CustomerListPage> {
     super.dispose();
   }
 
-  String formatQuantity(dynamic value) {
-    final numVal = double.tryParse(value?.toString() ?? '0') ?? 0;
-    return numVal.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
-  }
+  double _d(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0;
+
+  String _fmt(double v) =>
+      v.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
 
   Widget buildStatusChip(dynamic isActive) {
     final bool active = isActive == 1 || isActive == true;
-
     return Chip(
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
       label: Text(
         active ? "Active" : "Inactive",
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(color: Colors.white, fontSize: 10),
       ),
       backgroundColor: active ? Colors.green : Colors.red,
     );
@@ -100,8 +93,6 @@ class _CustomerListPageState extends State<CustomerListPage> {
       appBar: AppBar(
         leading: const BackButton(color: whiteColor),
         backgroundColor: const Color(0xFF2E7D32),
-
-        /// 🔍 TITLE / SEARCH FIELD
         title:
             _isSearching
                 ? Container(
@@ -113,23 +104,14 @@ class _CustomerListPageState extends State<CustomerListPage> {
                   child: TextField(
                     controller: _searchController,
                     autofocus: true,
-                    style: const TextStyle(color: Colors.black),
-                    cursorColor: Colors.black,
-                    textAlignVertical: TextAlignVertical.center,
                     decoration: const InputDecoration(
-                      hintText: "Search name, phone, house, milk, location...",
-                      hintStyle: TextStyle(color: Colors.grey),
-                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      hintText: "Search name, phone, milk, location...",
+                      prefixIcon: Icon(Icons.search),
                       border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 )
                 : const Text("Customers", style: TextStyle(color: whiteColor)),
-
         actions: [
           IconButton(
             icon: Icon(
@@ -138,15 +120,13 @@ class _CustomerListPageState extends State<CustomerListPage> {
             ),
             onPressed: () => _isSearching ? _stopSearch() : _startSearch(),
           ),
-
-          /// BULK IMPORT
           PopupMenuButton<String>(
             iconColor: whiteColor,
             onSelected: (value) {
               if (value == "bulk") {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => BulkImportPage()),
+                  MaterialPageRoute(builder: (_) => const BulkImportPage()),
                 );
               }
             },
@@ -175,67 +155,39 @@ class _CustomerListPageState extends State<CustomerListPage> {
 
           if (state is CustomerLoaded) {
             _allCustomers = state.customers;
-            if (!_isSearching) {
-              _filteredCustomers = _allCustomers;
-            }
+            if (!_isSearching) _filteredCustomers = _allCustomers;
 
             final customers = _filteredCustomers;
 
-            /// METRICS
             final totalCustomers = customers.length;
-            final totalLiters = customers.fold<double>(
+            final totalCow = customers.fold(
               0.0,
-              (sum, e) =>
-                  sum +
-                  (double.tryParse(e['quantity']?.toString() ?? '0') ?? 0.0),
+              (s, c) => s + _d(c['cow_milk_quantity']),
             );
+            final totalBuffalo = customers.fold(
+              0.0,
+              (s, c) => s + _d(c['buffalo_milk_quantity']),
+            );
+            final totalLiters = totalCow + totalBuffalo;
 
             return Column(
               children: [
-                /// METRICS CARD
+                /// 📊 METRICS
                 Container(
                   padding: const EdgeInsets.all(8),
                   color: const Color(0xFF2E7D32),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Column(
-                        children: [
-                          const Text(
-                            "Total Customers",
-                            style: TextStyle(color: whiteColor),
-                          ),
-                          Text(
-                            "$totalCustomers",
-                            style: const TextStyle(
-                              color: whiteColor,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          const Text(
-                            "Total Liters",
-                            style: TextStyle(color: whiteColor),
-                          ),
-                          Text(
-                            "${formatQuantity(totalLiters)} L",
-                            style: const TextStyle(
-                              color: whiteColor,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                      _metric("Customers", "$totalCustomers"),
+                      _metric("Cow Milk", "${_fmt(totalCow)} L"),
+                      _metric("Buffalo", "${_fmt(totalBuffalo)} L"),
+                      _metric("Total", "${_fmt(totalLiters)} L"),
                     ],
                   ),
                 ),
 
-                /// CUSTOMER LIST + PULL TO REFRESH
+                /// 📋 LIST
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _onRefresh,
@@ -250,10 +202,11 @@ class _CustomerListPageState extends State<CustomerListPage> {
                               ],
                             )
                             : ListView.builder(
-                              physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: customers.length,
                               itemBuilder: (context, index) {
                                 final c = customers[index];
+                                final cow = _d(c['cow_milk_quantity']);
+                                final buffalo = _d(c['buffalo_milk_quantity']);
 
                                 return Card(
                                   margin: const EdgeInsets.symmetric(
@@ -275,7 +228,6 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                     title: Text(
                                       "🏠 ${c['house_name'] ?? ''}",
                                       style: const TextStyle(
-                                        fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -283,20 +235,11 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          "👤 ${c['name'] ?? ''}",
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          "📞 ${c['phone']}",
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                        const SizedBox(height: 2),
+                                        Text("👤 ${c['name'] ?? ''}"),
+                                        Text("📞 ${c['phone']}"),
                                         Text(
                                           "📍 ${c['location'] ?? ''}",
                                           style: const TextStyle(
-                                            fontSize: 13,
                                             color: Colors.grey,
                                           ),
                                         ),
@@ -308,13 +251,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.end,
                                       children: [
-                                        Text(
-                                          "${c['milk']} (${formatQuantity(c['quantity'])} L)",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
+                                        if (cow > 0) Text("🐄 ${_fmt(cow)} L"),
+                                        if (buffalo > 0)
+                                          Text("🐃 ${_fmt(buffalo)} L"),
                                         buildStatusChip(c['is_active']),
                                       ],
                                     ),
@@ -346,6 +285,22 @@ class _CustomerListPageState extends State<CustomerListPage> {
         },
         child: const Icon(Icons.add, color: whiteColor),
       ),
+    );
+  }
+
+  Widget _metric(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(color: whiteColor)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: whiteColor,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }
