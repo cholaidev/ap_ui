@@ -26,6 +26,8 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
   List<dynamic> _allCustomers = [];
   List<dynamic> _filteredCustomers = [];
 
+  double _d(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0;
+
   @override
   void initState() {
     super.initState();
@@ -40,10 +42,8 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
     _searchController.addListener(_onSearchChanged);
   }
 
-  /// 🔍 SEARCH (NAME / PHONE / LOCATION / HOUSE NAME)
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
-
     setState(() {
       _filteredCustomers =
           _allCustomers.where((c) {
@@ -55,9 +55,7 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
     });
   }
 
-  void _startSearch() {
-    setState(() => _isSearching = true);
-  }
+  void _startSearch() => setState(() => _isSearching = true);
 
   void _stopSearch() {
     setState(() {
@@ -77,6 +75,7 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
     }
   }
 
+  // ================= TOGGLE =================
   void toggleCustomer(Map<String, dynamic> customer) {
     setState(() {
       final index = selectedCustomers.indexWhere(
@@ -86,32 +85,58 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
       if (index != -1) {
         selectedCustomers.removeAt(index);
       } else {
+        final cow = _d(customer['cow_milk_quantity']);
+        final buffalo = _d(customer['buffalo_milk_quantity']);
+
         selectedCustomers.add({
           ...customer,
-          "quantity": customer['quantity'] ?? 0,
+          "cow_milk_quantity": cow,
+          "buffalo_milk_quantity": buffalo,
+          "quantity": cow + buffalo,
+          "price_per_liter": supplyCubit.priceofMilk,
         });
       }
     });
   }
 
-  void updateQuantity(int id, double qty) {
+  // ================= UPDATE =================
+  void updateCow(int id, double value) {
     final index = selectedCustomers.indexWhere((e) => e['id'] == id);
-    if (index != -1) {
-      setState(() {
-        selectedCustomers[index]['quantity'] = qty;
-      });
-    }
+    if (index == -1) return;
+
+    setState(() {
+      selectedCustomers[index]['cow_milk_quantity'] = value;
+      selectedCustomers[index]['quantity'] =
+          value + _d(selectedCustomers[index]['buffalo_milk_quantity']);
+    });
+  }
+
+  void updateBuffalo(int id, double value) {
+    final index = selectedCustomers.indexWhere((e) => e['id'] == id);
+    if (index == -1) return;
+
+    setState(() {
+      selectedCustomers[index]['buffalo_milk_quantity'] = value;
+      selectedCustomers[index]['quantity'] =
+          value + _d(selectedCustomers[index]['cow_milk_quantity']);
+    });
   }
 
   void _onDone() {
+    final hasValidQty = selectedCustomers.any((c) => _d(c['quantity']) > 0);
+
+    if (!hasValidQty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Quantity must be greater than 0"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     supplyCubit.setCustomers(selectedCustomers);
     Navigator.pop(context, selectedCustomers);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -120,8 +145,6 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
       appBar: AppBar(
         leading: const BackButton(color: whiteColor),
         backgroundColor: const Color(0xFF2E7D32),
-
-        /// 🔍 TITLE / SEARCH
         title:
             _isSearching
                 ? Container(
@@ -133,18 +156,10 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                   child: TextField(
                     controller: _searchController,
                     autofocus: true,
-                    style: const TextStyle(color: Colors.black),
-                    cursorColor: Colors.black,
-                    textAlignVertical: TextAlignVertical.center,
                     decoration: const InputDecoration(
-                      hintText: "Search name, phone, house, location...",
-                      hintStyle: TextStyle(color: Colors.grey),
-                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      hintText: "Search customers...",
+                      prefixIcon: Icon(Icons.search),
                       border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 )
@@ -152,7 +167,6 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                   "Select Customers",
                   style: TextStyle(color: whiteColor),
                 ),
-
         actions: [
           IconButton(
             icon: Icon(
@@ -161,7 +175,6 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
             ),
             onPressed: () => _isSearching ? _stopSearch() : _startSearch(),
           ),
-
           TextButton(
             onPressed: selectedCustomers.isEmpty ? null : _onDone,
             child: const Text(
@@ -180,17 +193,13 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
 
           if (state is CustomerLoaded) {
             _allCustomers = state.customers;
-            if (!_isSearching) {
-              _filteredCustomers = _allCustomers;
-            }
-
-            final customers = _filteredCustomers;
+            if (!_isSearching) _filteredCustomers = _allCustomers;
 
             return ListView.builder(
               padding: const EdgeInsets.all(8),
-              itemCount: customers.length,
+              itemCount: _filteredCustomers.length,
               itemBuilder: (_, index) {
-                final c = customers[index];
+                final c = _filteredCustomers[index];
                 final selected = isSelected(c['id']);
                 final sc = selectedCustomer(c['id']);
 
@@ -200,77 +209,104 @@ class _CustomerSelectListPageState extends State<CustomerSelectListPage> {
                     children: [
                       ListTile(
                         onTap: () => toggleCustomer(c),
-
                         leading: Checkbox(
                           value: selected,
                           onChanged: (_) => toggleCustomer(c),
                         ),
-
                         title: Text(
                           "🏠 ${c['house_name'] ?? ''}",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 4),
+                            Text("👤 ${c['name']}"),
+                            Text("📞 ${c['phone']}"),
                             Text(
-                              "👤 ${c['name'] ?? ''}",
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            const SizedBox(height: 2),
-                            Text("📞 ${c['phone'] ?? '-'}"),
-                            const SizedBox(height: 2),
-                            Text(
-                              "📍 ${c['location'] ?? ''}",
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
-                              ),
+                              "📍 ${c['location']}",
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),
-
-                        trailing: Icon(
-                          c['is_active'] == 1
-                              ? Icons.check_circle
-                              : Icons.cancel,
-                          color:
-                              c['is_active'] == 1 ? Colors.green : Colors.red,
-                        ),
                       ),
 
-                      /// QUANTITY FIELD
+                      /// 🔥 EDITABLE QUANTITIES
                       if (selected)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(56, 0, 16, 12),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Liters",
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 100,
-                                child: TextFormField(
-                                  initialValue: "${sc?['quantity'] ?? 0}",
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    border: OutlineInputBorder(),
+                              Row(
+                                children: [
+                                  const Text("🐄"),
+                                  const SizedBox(width: 4),
+                                  SizedBox(
+                                    width: 60,
+                                    height: 34,
+                                    child: TextFormField(
+                                      initialValue:
+                                          _d(
+                                            sc?['cow_milk_quantity'],
+                                          ).toString(),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 13),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 6,
+                                        ),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged:
+                                          (v) => updateCow(c['id'], _d(v)),
+                                    ),
                                   ),
-                                  onChanged: (v) {
-                                    updateQuantity(
-                                      c['id'],
-                                      double.tryParse(v) ?? 0,
-                                    );
-                                  },
-                                ),
+
+                                  const SizedBox(width: 12),
+
+                                  const Text("🐃"),
+                                  const SizedBox(width: 4),
+                                  SizedBox(
+                                    width: 60,
+                                    height: 34,
+                                    child: TextFormField(
+                                      initialValue:
+                                          _d(
+                                            sc?['buffalo_milk_quantity'],
+                                          ).toString(),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 13),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 6,
+                                        ),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged:
+                                          (v) => updateBuffalo(c['id'], _d(v)),
+                                    ),
+                                  ),
+
+                                  const Spacer(),
+
+                                  Text(
+                                    "Total ${_d(sc?['quantity']).toStringAsFixed(2)} L",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

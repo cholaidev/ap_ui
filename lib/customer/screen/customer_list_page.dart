@@ -213,7 +213,7 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                     horizontal: 6,
                                     vertical: 4,
                                   ),
-                                  child: ListTile(
+                                  child: InkWell(
                                     onTap: () {
                                       Navigator.push(
                                         context,
@@ -225,37 +225,65 @@ class _CustomerListPageState extends State<CustomerListPage> {
                                         ),
                                       );
                                     },
-                                    title: Text(
-                                      "🏠 ${c['house_name'] ?? ''}",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text("👤 ${c['name'] ?? ''}"),
-                                        Text("📞 ${c['phone']}"),
-                                        Text(
-                                          "📍 ${c['location'] ?? ''}",
-                                          style: const TextStyle(
-                                            color: Colors.grey,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          /// LEFT SIDE (DETAILS)
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "🏠 ${c['house_name'] ?? ''}",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text("👤 ${c['name'] ?? ''}"),
+                                                Text("📞 ${c['phone']}"),
+                                                Text(
+                                                  "📍 ${c['location'] ?? ''}",
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    trailing: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        if (cow > 0) Text("🐄 ${_fmt(cow)} L"),
-                                        if (buffalo > 0)
-                                          Text("🐃 ${_fmt(buffalo)} L"),
-                                        buildStatusChip(c['is_active']),
-                                      ],
+
+                                          const SizedBox(width: 8),
+
+                                          /// RIGHT SIDE (MILK + STATUS)
+                                          Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              if (cow > 0)
+                                                Text(
+                                                  "🐄 ${_fmt(cow)} L",
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              if (buffalo > 0)
+                                                Text(
+                                                  "🐃 ${_fmt(buffalo)} L",
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              const SizedBox(height: 6),
+                                              buildStatusChip(c['is_active']),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 );

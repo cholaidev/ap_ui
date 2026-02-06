@@ -48,14 +48,29 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       print('check edit supply ${widget.editSupply}');
 
       supplyCubit.setEmployee(widget.editSupply!['employee']);
+      double _d(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0;
 
       final items = widget.editSupply?['items'] as List<dynamic>? ?? [];
-
+      print('items in edit $items');
       final customers =
           items.where((item) => item['customer'] != null).map((item) {
             final customer = Map<String, dynamic>.from(item['customer']);
-            customer['quantity'] = item['quantity']; // 🔥 0.6 comes here
-            customer['price_per_liter'] = item['price_per_liter'];
+
+            final cowQty = _d(item['cow_milk_quantity']);
+            final buffaloQty = _d(item['buffalo_milk_quantity']);
+
+            customer['cow_milk_quantity'] = cowQty;
+            customer['buffalo_milk_quantity'] = buffaloQty;
+
+            /// ✅ TOTAL = COW + BUFFALO
+            customer['quantity'] = cowQty + buffaloQty;
+
+            /// price (safe)
+            customer['price_per_liter'] =
+                _d(item['cow_price_per_liter']) > 0
+                    ? _d(item['cow_price_per_liter'])
+                    : _d(item['buffalo_price_per_liter']);
+
             return customer;
           }).toList();
 
@@ -116,27 +131,41 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       );
       return;
     }
+    double _d(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0;
 
     final payload = {
       "employee": supplyCubit.selectedEmployee,
       "total_quantity": supplyCubit.totalLiters,
       "total_amount": supplyCubit.totalAmountOfMilk,
       "supply_date":
-          widget.is_from_assigned! == true
+          widget.is_from_assigned == true
               ? null
               : supplyCubit.supplyDate.toIso8601String(),
-      'is_assigned_only': widget.is_from_assigned! == true ? 1 : 0,
+      "is_assigned_only": widget.is_from_assigned == true ? 1 : 0,
+
       "items":
           supplyCubit.selectedCustomers.map((c) {
+            final cowQty = _d(c['cow_milk_quantity']);
+            final buffaloQty = _d(c['buffalo_milk_quantity']);
+            final price =
+                _d(c['price_per_liter']) > 0
+                    ? _d(c['price_per_liter'])
+                    : supplyCubit.priceofMilk;
+
             return {
               "customer_id": c['id'],
-              "milk": c['milk'],
-              "quantity": c['quantity'],
-              "price_per_liter":
-                  c['price_per_liter'] ?? supplyCubit.priceofMilk,
+
+              // 🐄 COW
+              "cow_milk_quantity": cowQty,
+              "cow_price_per_liter": cowQty > 0 ? price : 0,
+
+              // 🐃 BUFFALO
+              "buffalo_milk_quantity": buffaloQty,
+              "buffalo_price_per_liter": buffaloQty > 0 ? price : 0,
             };
           }).toList(),
     };
+
     print('check supply payload $payload');
     if (widget.editSupply != null) {
       context.read<SupplyBloc>().add(
@@ -345,6 +374,8 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                       itemCount: customers.length,
                       itemBuilder: (_, i) {
                         final c = customers[i];
+                        double _d(dynamic v) =>
+                            double.tryParse(v?.toString() ?? '0') ?? 0;
                         final controller = _qtyControllers.putIfAbsent(
                           c['id'],
                           () => TextEditingController(
@@ -387,7 +418,7 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                                             ),
                                           ),
 
-                                          Text("📞 ${c['phone']}"),
+                                          Text("${c['phone']}"),
                                         ],
                                       ),
                                     ),
@@ -403,24 +434,54 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Row(
+
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(child: Text("Milk: ${c['milk']}")),
-                                    SizedBox(
-                                      width: 90,
-                                      child: TextFormField(
-                                        controller: controller,
-                                        readOnly: true,
-                                        keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
-                                          labelText: "Liters",
+                                    if (_d(c['cow_milk_quantity']) > 0)
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            "🐄 Cow",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            "${_d(c['cow_milk_quantity']).toStringAsFixed(2)} L",
+                                          ),
+                                        ],
+                                      ),
+
+                                    if (_d(c['buffalo_milk_quantity']) > 0)
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            "🐃 Buffalo",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            "${_d(c['buffalo_milk_quantity']).toStringAsFixed(2)} L",
+                                          ),
+                                        ],
+                                      ),
+
+                                    const SizedBox(height: 4),
+
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        "Total: ${_d(c['quantity']).toStringAsFixed(2)} L",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
                                         ),
-                                        onChanged: (v) {
-                                          supplyCubit.updateCustomerQuantity(
-                                            c['id'],
-                                            double.tryParse(v) ?? 0,
-                                          );
-                                        },
                                       ),
                                     ),
                                   ],

@@ -10,7 +10,7 @@ import 'supply_form_page.dart';
 
 class SupplyDetailPage extends StatefulWidget {
   final int id;
-  final is_from_assigned;
+  final bool is_from_assigned;
 
   const SupplyDetailPage({
     super.key,
@@ -26,10 +26,19 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
   DateFilterType _filter = DateFilterType.today;
   DateTimeRange? _customRange;
 
+  double _d(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0;
+
   @override
   void initState() {
     super.initState();
     context.read<SupplyBloc>().add(GetSupplyDetails(widget.id));
+  }
+
+  Future<bool> _onPhoneBackPressed() async {
+    context.read<SupplyBloc>().add(
+      LoadSupplies(is_from_assigned: widget.is_from_assigned),
+    );
+    return true;
   }
 
   void _confirmDelete(int id) {
@@ -57,48 +66,17 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
     );
   }
 
-  Future<bool> _onPhoneBackPressed() async {
-    debugPrint('phone back pressed');
-
-    context.read<SupplyBloc>().add(
-      LoadSupplies(is_from_assigned: widget.is_from_assigned),
-    );
-
-    return true; // allow navigation
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<SupplyBloc, SupplyState>(
       listener: (context, state) {
-        /// ✅ DELETE SUCCESS
-        if (state is SupplyDeleteSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
-
+        if (state is SupplyDeleteSuccess || state is SupplySuccess) {
           context.read<SupplyBloc>().add(
             LoadSupplies(is_from_assigned: widget.is_from_assigned),
           );
           Navigator.pop(context);
         }
 
-        /// ✅ UPDATE / EDIT SUCCESS
-        if (state is SupplySuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          context.read<SupplyBloc>().add(
-            LoadSupplies(is_from_assigned: widget.is_from_assigned),
-          );
-          Navigator.pop(context);
-        }
-
-        /// ❌ ERROR
         if (state is SupplyError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.error), backgroundColor: Colors.red),
@@ -108,22 +86,11 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
       child: PopScope(
         canPop: true,
         onPopInvoked: (didPop) {
-          if (didPop) {
-            _onPhoneBackPressed();
-          }
+          if (didPop) _onPhoneBackPressed();
         },
         child: Scaffold(
           appBar: AppBar(
-            leading: BackButton(
-              color: whiteColor,
-              onPressed: () {
-                print('back prevented');
-                context.read<SupplyBloc>().add(
-                  LoadSupplies(is_from_assigned: widget.is_from_assigned),
-                );
-                Navigator.pop(context);
-              },
-            ),
+            leading: BackButton(color: whiteColor),
             title: const Text(
               "Supply Details",
               style: TextStyle(color: whiteColor),
@@ -134,7 +101,6 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                 iconColor: whiteColor,
                 onSelected: (value) {
                   final state = context.read<SupplyBloc>().state;
-                  print('state check $state');
                   if (state is! SupplyDetailLoaded) return;
 
                   if (value == "edit") {
@@ -166,6 +132,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
               ),
             ],
           ),
+
           body: BlocBuilder<SupplyBloc, SupplyState>(
             builder: (context, state) {
               if (state is SupplyLoading) {
@@ -179,26 +146,12 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
               final s = state.supply;
               final List items = s['items'] ?? [];
 
-              /// ✅ PARSE SUPPLY DATE (YYYY-MM-DD)
-              final supplyDate = DateTime.parse(s['supply_date']);
+              double deliveredCow = 0;
+              double deliveredBuffalo = 0;
+              double undeliveredCow = 0;
+              double undeliveredBuffalo = 0;
 
-              /// ✅ TODAY RANGE
-              final now = DateTime.now();
-              final todayStart = DateTime(now.year, now.month, now.day);
-              final todayEnd = todayStart.add(const Duration(days: 1));
-
-              /// ❌ NOT TODAY → NO DATA
-              // if (supplyDate.isBefore(todayStart) ||
-              //     supplyDate.isAfter(todayEnd)) {
-              //   return const Center(child: Text("No supply for today"));
-              // }
-
-              double deliveredQty = 0;
-              // double deliveredAmount = 0;
               int deliveredCount = 0;
-
-              double undeliveredQty = 0;
-              // double undeliveredAmount = 0;
               int undeliveredCount = 0;
 
               for (final item in items) {
@@ -211,22 +164,22 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                 ))
                   continue;
 
-                final qty = (item['quantity'] ?? 0).toDouble();
-                // final amount = (item['amount'] ?? 0).toDouble();
+                final cowQty = _d(item['cow_milk_quantity']);
+                final buffaloQty = _d(item['buffalo_milk_quantity']);
 
                 if (item['is_delivered'] == 1) {
-                  deliveredQty += qty;
-                  // deliveredAmount += amount;
+                  deliveredCow += cowQty;
+                  deliveredBuffalo += buffaloQty;
                   deliveredCount++;
                 } else {
-                  undeliveredQty += qty;
-                  // undeliveredAmount += amount;
+                  undeliveredCow += cowQty;
+                  undeliveredBuffalo += buffaloQty;
                   undeliveredCount++;
                 }
               }
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(5),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -236,35 +189,37 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                         _info("Phone", s['employee']['phone'] ?? "N/A"),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 10),
+
                     Row(
                       children: [
-                        _metricCard(
-                          "Delivered ($deliveredCount)",
-                          "$deliveredQty L",
-                          // "₹ $deliveredAmount",
-                          Colors.green,
-                          Icons.check_circle,
+                        _metricSplitCard(
+                          title: "Delivered ($deliveredCount)",
+                          cow: deliveredCow,
+                          buffalo: deliveredBuffalo,
+                          color: Colors.green,
+                          icon: Icons.check_circle,
                         ),
-                        const SizedBox(width: 2),
-                        _metricCard(
-                          "Undelivered ($undeliveredCount)",
-                          "$undeliveredQty L",
-                          // "₹ $undeliveredAmount",
-                          Colors.red,
-                          Icons.pending_actions,
+                        const SizedBox(width: 6),
+                        _metricSplitCard(
+                          title: "Undelivered ($undeliveredCount)",
+                          cow: undeliveredCow,
+                          buffalo: undeliveredBuffalo,
+                          color: Colors.red,
+                          icon: Icons.pending_actions,
                         ),
                       ],
                     ),
+
                     const Divider(),
                     const Text(
-                      "Supply Items ",
+                      "Supply Items",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     ...items.map<Widget>((i) {
                       final customerName =
                           i['customer']?['name'] ??
@@ -273,7 +228,28 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                       return Card(
                         child: ListTile(
                           title: Text(customerName),
-                          subtitle: Text("${i['milk']} • ${i['quantity']} L"),
+
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_d(i['cow_milk_quantity']) > 0)
+                                Text("🐄 Cow : ${i['cow_milk_quantity']} L"),
+
+                              if (_d(i['buffalo_milk_quantity']) > 0)
+                                Text(
+                                  "🐃 Buffalo : ${i['buffalo_milk_quantity']} L",
+                                ),
+
+                              Text(
+                                "Total : ${i['total_quantity']} L",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+
                           trailing: Text(
                             i['is_delivered'] == 1 ? "Delivered" : "Pending",
                             style: TextStyle(
@@ -281,6 +257,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                                   i['is_delivered'] == 1
                                       ? Colors.green
                                       : Colors.red,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -309,32 +286,45 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
     );
   }
 
-  Widget _metricCard(
-    String title,
-    String qty,
-    // String amount,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _metricSplitCard({
+    required String title,
+    required double cow,
+    required double buffalo,
+    required Color color,
+    required IconData icon,
+  }) {
+    final total = cow + buffalo;
+
     return Expanded(
       child: Container(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: color),
-                  const SizedBox(width: 6),
-                  Text(title, style: TextStyle(color: color)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(qty, style: const TextStyle(fontWeight: FontWeight.bold)),
-              // Text(amount, style: const TextStyle(color: Colors.grey)),
-            ],
-          ),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color),
+                const SizedBox(width: 6),
+                Text(title, style: TextStyle(color: color)),
+              ],
+            ),
+            const SizedBox(height: 6),
+
+            if (cow > 0) Text("🐄 Cow : ${cow.toStringAsFixed(2)} L"),
+
+            if (buffalo > 0)
+              Text("🐃 Buffalo : ${buffalo.toStringAsFixed(2)} L"),
+
+            const SizedBox(height: 4),
+            Text(
+              "Total : ${total.toStringAsFixed(2)} L",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
     );
