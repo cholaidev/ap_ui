@@ -19,13 +19,14 @@ class _CustomerDeliveryHistoryWidgetState
   DateFilterTypes _filter = DateFilterTypes.today;
   DateTimeRange? _customRange;
 
+  double _d(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0;
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
-  /// 🔹 LOAD HISTORY
   void _load() {
     final range = resolveDateRange(_filter, _customRange);
 
@@ -38,7 +39,6 @@ class _CustomerDeliveryHistoryWidgetState
     );
   }
 
-  /// 🔹 FILTER CHANGE
   Future<void> _changeFilter(DateFilterTypes value) async {
     if (value == DateFilterTypes.custom) {
       final range = await showDateRangePicker(
@@ -68,7 +68,7 @@ class _CustomerDeliveryHistoryWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        /// 🔽 HEADER + FILTER
+        /// HEADER
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -104,7 +104,6 @@ class _CustomerDeliveryHistoryWidgetState
 
         const SizedBox(height: 8),
 
-        /// 📊 DATA
         BlocBuilder<CustomerHistoryBloc, CustomerHistoryState>(
           builder: (context, state) {
             if (state is CustomerDeliveryLoading) {
@@ -114,63 +113,41 @@ class _CustomerDeliveryHistoryWidgetState
             if (state is CustomerDeliveryHistory) {
               final history = state.history;
 
-              /// 🔹 SPLIT DATA
               final delivered =
                   history.where((h) => h['is_delivered'] == 1).toList();
               final undelivered =
                   history.where((h) => h['is_delivered'] == 0).toList();
 
-              /// 🔹 QUANTITIES
-              final double deliveredQty = delivered.fold<double>(
-                0,
-                (s, h) => s + (h['quantity'] ?? 0).toDouble(),
-              );
+              /// 🐄🐃 METRICS
+              double deliveredCow = 0, deliveredBuffalo = 0;
+              double pendingCow = 0, pendingBuffalo = 0;
 
-              final double undeliveredQty = undelivered.fold<double>(
-                0,
-                (s, h) => s + (h['quantity'] ?? 0).toDouble(),
-              );
+              for (final h in delivered) {
+                deliveredCow += _d(h['cow_milk_quantity']);
+                deliveredBuffalo += _d(h['buffalo_milk_quantity']);
+              }
 
-              /// 🔹 COUNTS
-              final int totalDelivered = delivered.length;
-              final int totalUndelivered = undelivered.length;
+              for (final h in undelivered) {
+                pendingCow += _d(h['cow_milk_quantity']);
+                pendingBuffalo += _d(h['buffalo_milk_quantity']);
+              }
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// 🔥 METRICS
+                  /// METRICS
                   Row(
                     children: [
                       _metricCard(
-                        "Total Delivered",
-                        totalDelivered.toString(),
-                        Icons.check_circle,
+                        "Delivered",
+                        "🐄 ${deliveredCow} L\n🐃 ${deliveredBuffalo} L",
                         Colors.green,
                       ),
                       const SizedBox(width: 8),
                       _metricCard(
-                        "Total Undelivered",
-                        totalUndelivered.toString(),
-                        Icons.cancel,
+                        "Pending",
+                        "🐄 ${pendingCow} L\n🐃 ${pendingBuffalo} L",
                         Colors.red,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _metricCard(
-                        "Delivered Quantity",
-                        "$deliveredQty L",
-                        Icons.local_shipping,
-                        Colors.green,
-                      ),
-                      const SizedBox(width: 8),
-                      _metricCard(
-                        "Undelivered Quantity",
-                        "$undeliveredQty L",
-                        Icons.water_drop,
-                        Colors.orange,
                       ),
                     ],
                   ),
@@ -183,38 +160,66 @@ class _CustomerDeliveryHistoryWidgetState
                       style: TextStyle(color: Colors.grey),
                     ),
 
-                  /// 📜 HISTORY LIST
+                  /// HISTORY LIST
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: history.length,
                     itemBuilder: (_, i) {
                       final h = history[i];
-                      final bool deliveredFlag = h['is_delivered'] == 1;
+                      final deliveredFlag = h['is_delivered'] == 1;
 
                       return Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        child: ListTile(
-                          leading: Icon(
-                            deliveredFlag ? Icons.check_circle : Icons.cancel,
-                            color: deliveredFlag ? Colors.green : Colors.red,
-                          ),
-                          title: Text(
-                            "${h['quantity']} L",
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            deliveredFlag
-                                ? "Delivered on ${_formatDate(h['updated_at'])}"
-                                : "Pending (Supply: ${_formatDate(h['created_at'])})",
-                          ),
-                          trailing: Text(
-                            deliveredFlag ? "Delivered" : "Pending",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: deliveredFlag ? Colors.green : Colors.red,
-                            ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    deliveredFlag ? "Delivered" : "Pending",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          deliveredFlag
+                                              ? Colors.green
+                                              : Colors.red,
+                                    ),
+                                  ),
+                                  Text(
+                                    deliveredFlag
+                                        ? _formatDate(h['updated_at'])
+                                        : _formatDate(h['created_at']),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+
+                              if (_d(h['cow_milk_quantity']) > 0)
+                                Text(
+                                  "🐄 Cow : ${_d(h['cow_milk_quantity'])} L",
+                                ),
+
+                              if (_d(h['buffalo_milk_quantity']) > 0)
+                                Text(
+                                  "🐃 Buffalo : ${_d(h['buffalo_milk_quantity'])} L",
+                                ),
+
+                              const Divider(),
+
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  "Total : ${_d(h['total_quantity'])} L",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -235,26 +240,21 @@ class _CustomerDeliveryHistoryWidgetState
     );
   }
 
-  /// 🔹 METRIC CARD
-  Widget _metricCard(String title, String value, IconData icon, Color color) {
+  Widget _metricCard(String title, String value, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(10),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 22),
+            Text(
+              title,
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 6),
             Text(
               value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: color),
             ),
           ],
         ),

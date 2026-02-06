@@ -111,14 +111,14 @@ class _BulkImportPageState extends State<BulkImportPage> {
       }
 
       if (cowQty == 0 && buffaloQty == 0) {
-        errors.add("Row ${i + 2}: Both milk quantities are zero");
+        errors.add("Row ${i + 2}: Both Cow & Buffalo quantities are zero");
         continue;
       }
 
       validCustomers.add({
         "name": name,
         "phone": phone.replaceAll(RegExp(r'\D'), ''),
-        "house": house,
+        "house_name": house,
         "location": location,
         "cow_milk_quantity": cowQty,
         "buffalo_milk_quantity": buffaloQty,
@@ -254,12 +254,85 @@ class _BulkImportPageState extends State<BulkImportPage> {
       },
       child: Scaffold(
         appBar: AppBar(
+          leading: BackButton(color: whiteColor),
           title: const Text(
             "Bulk Import Customers",
             style: TextStyle(color: whiteColor),
           ),
           backgroundColor: const Color(0xFF2E7D32),
         ),
+
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  /// 🔘 PICK CSV BUTTON
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text("Select CSV File"),
+                    onPressed: _loading ? null : _pickCSV,
+                  ),
+
+                  if (_fileName != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      "Selected: $_fileName",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  /// 📄 CSV PREVIEW
+                  if (_csvData.isNotEmpty)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns:
+                            _csvData.first
+                                .map(
+                                  (e) => DataColumn(label: Text(e.toString())),
+                                )
+                                .toList(),
+                        rows:
+                            _csvData
+                                .skip(1)
+                                .map(
+                                  (row) => DataRow(
+                                    cells:
+                                        row
+                                            .map(
+                                              (c) =>
+                                                  DataCell(Text(c.toString())),
+                                            )
+                                            .toList(),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    )
+                  else
+                    const SizedBox(
+                      height: 200,
+                      child: Center(child: Text("No file selected")),
+                    ),
+                ],
+              ),
+            ),
+
+            if (_loading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.35),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
+        ),
+
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton:
             _csvData.isEmpty
