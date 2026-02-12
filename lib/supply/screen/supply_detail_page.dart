@@ -35,8 +35,13 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
   }
 
   Future<bool> _onPhoneBackPressed() async {
+    final now = DateTime.now();
     context.read<SupplyBloc>().add(
-      LoadSupplies(is_from_assigned: widget.is_from_assigned),
+      LoadSupplies(
+        is_from_assigned: widget.is_from_assigned,
+        from: DateTime(now.year, now.month, now.day, 0, 0, 0),
+        to: DateTime(now.year, now.month, now.day, 23, 59, 59),
+      ),
     );
     return true;
   }
@@ -187,6 +192,7 @@ class _SupplyDetailPageState extends State<SupplyDetailPage> {
                       children: [
                         _info("Employee", s['employee']['name']),
                         _info("Phone", s['employee']['phone'] ?? "N/A"),
+                        _info("supplyDate", s['supply_date'] ?? "N/A"),
                       ],
                     ),
                     const SizedBox(height: 10),

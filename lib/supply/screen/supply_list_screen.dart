@@ -27,6 +27,8 @@ class _SupplyListPageState extends State<SupplyListPage> {
 
     /// 🔥 DEFAULT = TODAY
     final range = _resolveDateRange(DateFilterType.today);
+    print('start range ${range.start}');
+    print('end range ${range.end}');
     context.read<SupplyBloc>().add(
       LoadSupplies(
         from: range.start,
@@ -42,8 +44,8 @@ class _SupplyListPageState extends State<SupplyListPage> {
 
     switch (filter) {
       case DateFilterType.today:
-        final start = DateTime(now.year, now.month, now.day);
-        final end = start.add(const Duration(days: 1));
+        final start = DateTime(now.year, now.month, now.day, 0, 0, 0);
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
         return DateTimeRange(start: start, end: end);
 
       case DateFilterType.week:
@@ -213,6 +215,10 @@ class _SupplyListPageState extends State<SupplyListPage> {
                         elevation: 2,
                         child: ListTile(
                           onTap: () {
+                            setState(() {
+                              _filter = DateFilterType.today;
+                            });
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -268,6 +274,9 @@ class _SupplyListPageState extends State<SupplyListPage> {
         backgroundColor: const Color(0xFF2E7D32),
         child: const Icon(Icons.add, color: whiteColor),
         onPressed: () {
+          setState(() {
+            _filter = DateFilterType.today;
+          });
           Navigator.push(
             context,
             MaterialPageRoute(

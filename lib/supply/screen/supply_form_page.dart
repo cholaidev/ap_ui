@@ -204,8 +204,13 @@ class _SupplyFormPageState extends State<SupplyFormPage> {
       body: BlocListener<SupplyBloc, SupplyState>(
         listener: (context, state) {
           if (state is SupplySuccess) {
+            final now = DateTime.now();
             context.read<SupplyBloc>().add(
-              LoadSupplies(is_from_assigned: widget.is_from_assigned),
+              LoadSupplies(
+                is_from_assigned: widget.is_from_assigned,
+                from: DateTime(now.year, now.month, now.day, 0, 0, 0),
+                to: DateTime(now.year, now.month, now.day, 23, 59, 59),
+              ),
             );
 
             ScaffoldMessenger.of(
