@@ -189,7 +189,19 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
 
                   const SizedBox(height: 16),
 
-                  _textField("House Name", _houseNameController),
+                  _textField(
+                    "House Name",
+                    _houseNameController,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return "House name is required";
+                      }
+                      if (v.trim().length < 3) {
+                        return "House name must be at least 3 characters";
+                      }
+                      return null;
+                    },
+                  ),
 
                   const SizedBox(height: 16),
 
