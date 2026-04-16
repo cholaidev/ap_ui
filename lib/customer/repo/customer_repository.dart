@@ -181,6 +181,24 @@ class CustomerRepository {
     }
   }
 
+  Future<void> reActiveCustomer(int id) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/customers/re-active/$id'),
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) return;
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
   // ----------------------------------------------------------------
   // 📌 CUSTOMER DELIVERY HISTORY
   // ----------------------------------------------------------------

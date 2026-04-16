@@ -34,3 +34,8 @@ class BulkCustomer extends CustomerEvent {
   final List<Map<String, dynamic>> validCustomers;
   BulkCustomer(this.validCustomers);
 }
+
+class ReactivateCustomer extends CustomerEvent {
+  final int id;
+  ReactivateCustomer(this.id);
+}

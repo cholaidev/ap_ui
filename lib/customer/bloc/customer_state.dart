@@ -29,6 +29,11 @@ class DeleteSuccess extends CustomerState {
   DeleteSuccess(this.message);
 }
 
+class ReactiveSuccess extends CustomerState {
+  final String message;
+  ReactiveSuccess(this.message);
+}
+
 class CustomerError extends CustomerState {
   final String error;
   CustomerError(this.error);

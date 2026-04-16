@@ -171,4 +171,22 @@ class EmployeeRepository {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
+
+  Future<bool> reactive(int id) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/employees/re-active/$id'),
+        headers: {
+          'Authorization': 'Bearer ${_getToken()}',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) return true;
+
+      throw _handleError(response);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
 }

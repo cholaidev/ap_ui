@@ -28,3 +28,8 @@ class DeleteEmployee extends EmployeeEvent {
   final int id;
   DeleteEmployee(this.id);
 }
+
+class ReActiveEmlpoyee extends EmployeeEvent {
+  final int id;
+  ReActiveEmlpoyee(this.id);
+}

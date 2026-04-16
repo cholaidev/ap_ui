@@ -70,6 +70,16 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
       }
     });
 
+    on<ReactivateCustomer>((event, emit) async {
+      emit(CustomerLoading());
+      try {
+        await customerRepo.reActiveCustomer(event.id);
+        emit(ReactiveSuccess("reactive customer successfully"));
+      } catch (e) {
+        emit(CustomerError(e.toString()));
+      }
+    });
+
     on<BulkCustomer>((event, emit) async {
       emit(CustomerLoading());
       try {

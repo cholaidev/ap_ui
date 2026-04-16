@@ -49,6 +49,10 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
     );
   }
 
+  void _reactivateEmployee(int id) {
+    context.read<EmployeeBloc>().add(ReActiveEmlpoyee(id));
+  }
+
   num _parseNum(dynamic value) {
     if (value == null) return 0;
     if (value is num) return value;
@@ -78,6 +82,18 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
             const SnackBar(
               content: Text("Employee deleted successfully"),
               backgroundColor: Colors.red,
+            ),
+          );
+
+          context.read<EmployeeBloc>().add(LoadEmployees(status: 'active'));
+          Navigator.pop(context);
+        }
+
+        if (state is EmployeeReactiveSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Employee Reactivated successfully"),
+              backgroundColor: Colors.green,
             ),
           );
 
@@ -115,48 +131,82 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
               style: TextStyle(color: whiteColor),
             ),
             actions: [
-              PopupMenuButton<String>(
-                iconColor: whiteColor,
-                onSelected: (value) {
-                  if (value == "edit") {
-                    final emp =
-                        (context.read<EmployeeBloc>().state
-                                as EmployeeDetailLoaded)
-                            .employee;
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EmployeeFormPage(editEmployee: emp),
-                      ),
-                    );
-                  } else if (value == "delete") {
-                    _confirmDelete(widget.id);
+              BlocBuilder<EmployeeBloc, EmployeeState>(
+                builder: (context, state) {
+                  if (state is! EmployeeDetailLoaded) {
+                    return const SizedBox(); // no menu if not loaded
                   }
+
+                  final emp = state.employee;
+
+                  return PopupMenuButton<String>(
+                    iconColor: whiteColor,
+                    onSelected: (value) {
+                      if (value == "edit") {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EmployeeFormPage(editEmployee: emp),
+                          ),
+                        );
+                      } else if (value == "delete") {
+                        _confirmDelete(widget.id);
+                      } else if (value == "reactivate") {
+                        _reactivateEmployee(widget.id);
+                      }
+                    },
+                    itemBuilder:
+                        (context) => [
+                          const PopupMenuItem(
+                            value: "edit",
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, size: 18),
+                                SizedBox(width: 8),
+                                Text("Edit"),
+                              ],
+                            ),
+                          ),
+
+                          /// ✅ CONDITIONAL BUTTON
+                          emp['is_active'] == 1
+                              ? const PopupMenuItem(
+                                value: "delete",
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.delete,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Delete",
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              : const PopupMenuItem(
+                                value: "reactivate",
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.restore,
+                                      size: 18,
+                                      color: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Reactivate",
+                                      style: TextStyle(color: Colors.green),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                        ],
+                  );
                 },
-                itemBuilder:
-                    (context) => [
-                      const PopupMenuItem(
-                        value: "edit",
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 18),
-                            SizedBox(width: 8),
-                            Text("Edit"),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: "delete",
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text("Delete", style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
               ),
             ],
           ),

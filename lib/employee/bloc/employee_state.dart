@@ -35,3 +35,8 @@ class EmployeeError extends EmployeeState {
   final String message;
   EmployeeError(this.message);
 }
+
+class EmployeeReactiveSuccess extends EmployeeState {
+  final String message;
+  EmployeeReactiveSuccess(this.message);
+}

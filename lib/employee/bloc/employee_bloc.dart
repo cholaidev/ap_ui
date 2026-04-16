@@ -72,5 +72,15 @@ class EmployeeBloc extends Bloc<EmployeeEvent, EmployeeState> {
         emit(EmployeeError("Error: $e"));
       }
     });
+
+    on<ReActiveEmlpoyee>((event, emit) async {
+      emit(EmployeeLoading());
+      try {
+        await employeeRepo.reactive(event.id);
+        emit(EmployeeReactiveSuccess("Employee reactivated"));
+      } catch (e) {
+        emit(EmployeeError("Error: $e"));
+      }
+    });
   }
 }
