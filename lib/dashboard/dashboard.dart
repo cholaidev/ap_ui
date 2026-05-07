@@ -103,17 +103,62 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _openSupplyDatePicker() async {
     final DateTime today = DateTime.now();
 
-    final DateTime? selectedDate = await showDatePicker(
+    final DateTimeRange? pickedRange = await showDateRangePicker(
       context: context,
-      initialDate: today,
       firstDate: DateTime(today.year - 1),
       lastDate: DateTime(today.year + 1),
+      initialDateRange: DateTimeRange(start: today, end: today),
     );
 
-    if (selectedDate == null) return;
+    if (pickedRange == null) return;
 
-    // 🔔 Ask confirmation
-    await _confirmAssignSupplyDate(selectedDate);
+    // Generate all selected dates
+    List<DateTime> selectedDates = [];
+
+    for (
+      DateTime date = pickedRange.start;
+      date.isBefore(pickedRange.end.add(const Duration(days: 1)));
+      date = date.add(const Duration(days: 1))
+    ) {
+      selectedDates.add(date);
+    }
+
+    // Confirm dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Supply Generation"),
+          content: Text(
+            "Generate supply for ${selectedDates.length} days?\n\n"
+            "${pickedRange.start.toLocal().toString().split(' ')[0]}"
+            " → "
+            "${pickedRange.end.toLocal().toString().split(' ')[0]}",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    // Dispatch event for all dates
+    assignedSupplyBloc.add(AssignMultipleSupplyDates(selectedDates));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Supply assigned for ${selectedDates.length} days"),
+      ),
+    );
   }
 
   @override

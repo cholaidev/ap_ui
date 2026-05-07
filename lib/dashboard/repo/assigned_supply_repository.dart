@@ -70,5 +70,60 @@ class AssignedSupplyRepository {
     }
   }
 
+  Future<void> assignMultipleSupplyDates(List<DateTime> dates) async {
+    final token = _getToken();
+    final uri = Uri.parse('$baseUrl/supplies/assign-date');
+
+    final payload = {
+      'supply_dates': dates.map((date) => date.toIso8601String()).toList(),
+    };
+
+    try {
+      // 🔵 REQUEST LOG
+      print('📤 AssignMultipleSupplyDates REQUEST');
+      print('URL: $uri');
+      print('Payload: $payload');
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+
+      // 🟢 RESPONSE LOG
+      print('📥 AssignMultipleSupplyDates RESPONSE');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      // ❌ API ERROR
+      if (response.statusCode != 200) {
+        final body = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+
+        final message =
+            body['message'] ?? body['error'] ?? 'Failed to generate supply';
+
+        throw Exception(message);
+      }
+
+      // ✅ SUCCESS
+      print('✅ Supply generated successfully');
+    } catch (e, stack) {
+      // 🔴 ERROR LOG
+      print('🔥 AssignMultipleSupplyDates ERROR');
+      print('Error: $e');
+      print('StackTrace: $stack');
+
+      throw Exception(
+        e is Exception
+            ? e.toString().replaceAll('Exception: ', '')
+            : 'Unexpected error while generating supply',
+      );
+    }
+  }
+
   /// 📦 Fetch all supplies
 }

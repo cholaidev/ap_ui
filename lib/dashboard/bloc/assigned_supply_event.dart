@@ -6,3 +6,9 @@ class AssignSupplyDate extends AssignedSupplyEvent {
   final DateTime supplyDate;
   AssignSupplyDate(this.supplyDate);
 }
+
+class AssignMultipleSupplyDates extends AssignedSupplyEvent {
+  final List<DateTime> supplyDates;
+
+  AssignMultipleSupplyDates(this.supplyDates);
+}
